@@ -109,6 +109,7 @@
         }
         .filter-btn:hover { border-color: var(--red); color: var(--red); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(194,12,12,.12); }
         .filter-btn.active { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 2px 8px rgba(194,12,12,.3); }
+        .action-group { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
         /* ===== Table ===== */
         .table-wrapper { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
@@ -252,14 +253,80 @@
 
         /* ===== Responsive ===== */
         @media (max-width: 768px) {
-            .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-            .stat-card { padding: 14px 8px; }
-            .stat-card .num { font-size: 24px; }
-            .toolbar { flex-direction: column; align-items: stretch; }
+            .header { padding: 16px 14px; }
+            .header-inner { flex-direction: column; gap: 4px; text-align: center; }
+            .header h1 { font-size: 20px; letter-spacing: 1px; }
+            .header-sub { font-size: 12px; }
+            .header-info { font-size: 12px; }
+            .container { padding: 14px 10px; }
+
+            .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+            .stat-card { padding: 12px 6px; border-radius: 10px; }
+            .stat-card .num { font-size: 22px; }
+            .stat-card .label { font-size: 11px; letter-spacing: 1px; margin-top: 2px; }
+
+            .toolbar { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+            .toolbar .btn-primary { width: 100%; padding: 12px; font-size: 15px; }
+            .search-box { width: 100%; min-width: 0; padding: 11px 14px; font-size: 14px; }
+            .filter-row { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+            .filter-row::-webkit-scrollbar { display: none; }
+            .filter-btn { flex-shrink: 0; padding: 7px 14px; font-size: 12px; }
+            .action-group { margin-left: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .action-group .btn { padding: 10px; font-size: 13px; }
+
+            /* 表格 → 卡片 */
+            .table-wrapper { background: transparent; border: none; border-radius: 0; overflow: visible; }
+            table, tbody { display: block; width: 100%; }
+            thead { display: none; }
+            tr {
+                display: block; background: var(--card); border: 1px solid var(--border);
+                border-radius: 12px; margin-bottom: 12px; overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,.04);
+            }
+            tbody tr:hover td { background: transparent; }
+            td {
+                display: flex; justify-content: space-between; align-items: center;
+                padding: 9px 14px; border-bottom: 1px solid var(--border-light);
+                font-size: 13px; text-align: right; min-height: 38px;
+            }
+            td::before {
+                content: attr(data-label); font-weight: 600; color: var(--text2);
+                font-size: 12px; text-align: left; flex-shrink: 0; margin-right: 12px;
+            }
+            td[data-label="公司"] {
+                background: linear-gradient(135deg, #FFF5F5, #FFF1F0);
+                font-size: 16px; padding: 13px 14px;
+            }
+            td[data-label="公司"]::before { display: none; }
+            td[data-label="公司"] strong { color: var(--red); font-size: 16px; }
+            td[data-label="备注"] { color: var(--text3); font-size: 12px; max-width: none !important; width: auto !important; }
+            td[data-label="附件"] { border-bottom: none; }
+            td[data-label="操作"] { border-bottom: none; background: #FAFAFA; padding: 10px 14px; }
+            td[data-label="操作"]::before { display: none; }
+            td[data-label="操作"] { justify-content: flex-end; gap: 8px; }
+            td[data-label="进度"] { width: auto !important; }
+            .action-btn { padding: 8px 20px; font-size: 13px; border-radius: 8px; }
+            td[data-label="进度"] .progress-bar { width: 110px; }
+
+            .legend { text-align: center; font-size: 11px; }
+            .empty { padding: 40px 16px; }
+            .empty-icon { font-size: 44px; }
+
+            /* 弹窗 */
+            .modal { width: 96%; max-width: none; padding: 20px 16px; border-radius: 14px; max-height: 88vh; }
+            .modal h2 { font-size: 18px; margin-bottom: 16px; }
+            .form-group input, .form-group select, .form-group textarea { padding: 12px 14px; font-size: 15px; }
             .form-row { flex-direction: column; gap: 0; }
-            th, td { padding: 8px 6px; font-size: 12px; }
-            .header { padding: 18px 16px; }
-            .header-inner { flex-direction: column; gap: 8px; text-align: center; }
+            .modal-actions { flex-direction: row; gap: 10px; }
+            .modal-actions .btn { flex: 1; padding: 13px; font-size: 15px; }
+
+            .confirm-box { padding: 24px 18px; }
+            .confirm-actions .btn { flex: 1; padding: 12px; }
+            .toast { padding: 11px 22px; font-size: 14px; width: max-content; max-width: 90vw; }
+        }
+        @media (max-width: 380px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .header h1 { font-size: 18px; }
         }
     </style>
 </head>
@@ -302,7 +369,12 @@
             <button class="filter-btn" data-type="cat" data-val="银行" onclick="setFilter('cat','银行',this)">银行</button>
             <button class="filter-btn" data-type="cat" data-val="其他" onclick="setFilter('cat','其他',this)">其他</button>
         </div>
-        <button class="btn btn-danger" onclick="confirmClear()" style="margin-left:auto;">清空</button>
+        <div class="action-group">
+            <button class="btn btn-danger" onclick="confirmClear()">清空</button>
+            <button class="btn btn-cancel" onclick="exportData()" title="导出为JSON文件">导出</button>
+            <button class="btn btn-cancel" onclick="document.getElementById('importInput').click()" title="从JSON文件导入">导入</button>
+            <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+        </div>
     </div>
 
     <div class="table-wrapper">
@@ -380,7 +452,10 @@
 const STATUS_MAP={pending:{text:'待处理',cls:'status-pending',p:20},writtentest:{text:'笔试中',cls:'status-writtentest',p:40},interview:{text:'面试中',cls:'status-interview',p:70},offer:{text:'已 Offer',cls:'status-offer',p:100},rejected:{text:'已拒绝',cls:'status-rejected',p:0}};
 const CAT_MAP={'互联网':'cat-internet','快消':'cat-fmcg','央国企':'cat-soe','银行':'cat-bank','其他':'cat-other'};
 const STATUS_COLOR={pending:'#1890FF',writtentest:'#FA8C16',interview:'#722ED1',offer:'#52C41A',rejected:'#F5222D'};
-let data=JSON.parse(localStorage.getItem('autumnRecruitData')||'[]');
+const SEED_DATA=[{"id":"1790917319219","company":"Babycare","cat":"快消","position":"产品经理","date":"2026-10-02","status":"pending","note":"","jd":"","image":""},{"id":"1790917351477","company":"认养一头牛","cat":"快消","position":"乳制品产品经理","date":"2026-10-02","status":"pending","note":"","jd":"","image":""},{"id":"1790917870299","company":"认养一头牛","cat":"快消","position":"IT产品经理","date":"2026-10-02","status":"rejected","note":"","jd":"","image":""}];
+let data=JSON.parse(localStorage.getItem('autumnRecruitData')||'null');
+if(data===null){data=SEED_DATA;localStorage.setItem('autumnRecruitData',JSON.stringify(data));}
+else if(!Array.isArray(data))data=[];
 let filterStatus='all', filterCat='all';
 document.getElementById('dateInfo').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
 document.getElementById('dateInput').valueAsDate=new Date();
@@ -425,7 +500,7 @@ function renderTable(){
             const catText=i.cat||'未分类';
             const att=(i.jd?'<span class="tag-jd" title="有JD"></span>':'')+(i.image?'<span class="tag-img" title="有图片"></span>':'')||'-';
             const pgc=STATUS_COLOR[i.status]||'#999';
-            return`<tr><td><strong>${i.company}</strong></td><td><span class="cat-tag ${catCls}">${catText}</span></td><td>${i.position}</td><td style="white-space:nowrap">${i.date||'-'}</td><td><span class="status ${s.cls}">${s.text}</span></td><td style="max-width:160px;color:var(--text3);font-size:12px">${i.note||'-'}</td><td>${att}</td><td style="width:100px"><div class="progress-bar"><div class="progress-fill" style="width:${s.p}%;background:${pgc}"></div></div></td><td style="white-space:nowrap"><button class="action-btn edit" onclick="editItem('${i.id}')">编辑</button><button class="action-btn delete" onclick="deleteItem('${i.id}')">删除</button></td></tr>`;
+            return`<tr><td data-label="公司"><strong>${i.company}</strong></td><td data-label="类别"><span class="cat-tag ${catCls}">${catText}</span></td><td data-label="岗位">${i.position}</td><td data-label="投递时间" style="white-space:nowrap">${i.date||'-'}</td><td data-label="状态"><span class="status ${s.cls}">${s.text}</span></td><td data-label="备注" style="max-width:160px;color:var(--text3);font-size:12px">${i.note||'-'}</td><td data-label="附件">${att}</td><td data-label="进度" style="width:100px"><div class="progress-bar"><div class="progress-fill" style="width:${s.p}%;background:${pgc}"></div></div></td><td data-label="操作" style="white-space:nowrap"><button class="action-btn edit" onclick="editItem('${i.id}')">编辑</button><button class="action-btn delete" onclick="deleteItem('${i.id}')">删除</button></td></tr>`;
         }).join('');
     }
     updateStats();
@@ -552,6 +627,32 @@ function confirmClear(){
         data=[];localStorage.setItem('autumnRecruitData',JSON.stringify(data));
         renderTable();toast('已清空','success');
     });
+}
+function exportData(){
+    const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='秋招投递备份_'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('已导出 '+data.length+' 条记录','success');
+}
+function importData(e){
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+        try{
+            const arr=JSON.parse(ev.target.result);
+            if(!Array.isArray(arr)||!arr.length||!arr[0].company){toast('文件格式不正确','error');return;}
+            showConfirm('导入 '+arr.length+' 条记录，覆盖当前数据？',()=>{
+                data=arr;
+                localStorage.setItem('autumnRecruitData',JSON.stringify(data));
+                renderTable();toast('导入成功','success');
+            });
+        }catch(err){toast('文件解析失败','error');}
+    };
+    reader.readAsText(file);
+    e.target.value='';
 }
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 renderTable();
