@@ -1217,11 +1217,100 @@ function segmentResumeText(text){
     segs.forEach(function(s){map[s.title]=map[s.title]?map[s.title]+'\n'+s.content:s.content;});
     return Object.keys(map).map(function(t){return{title:t,content:map[t]};});
 }
+const SECTION_ALIAS={
+    '基本信息':['个人信息','基本资料','联系方式'],
+    '教育背景':['教育经历','学习经历'],
+    '实习经历':['实习经验','工作经验','工作经历'],
+    '项目经历':['项目经验'],
+    '获奖荣誉':['获奖情况','荣誉奖项','所获荣誉','荣誉证书','获奖经历'],
+    '学生工作':['校园经历','社会实践','学生干部经历','社团经历'],
+    '个人评价':['自我评价','自我介绍','个人简介'],
+    '专业技能':['技能特长','技能清单','语言能力']
+};
+const FIELD_ALIAS={
+    '姓名':['名字','name'],
+    '手机号码':['手机','电话','联系电话','手机号','移动电话'],
+    '邮箱':['电子邮件','email','e-mail','邮箱地址'],
+    '政治面貌':['政治面目'],
+    '毕业院校':['毕业学校','学校','就读院校','最高学历'],
+    '学院':['院系','所属学院','院部'],
+    '实习公司':['公司名称','公司','工作单位','任职公司'],
+    '实习部门':['部门','所属部门'],
+    '实习职位':['职位','岗位','职务'],
+    '实习时间':['时间','任职时间','实习时段'],
+    '实习描述':['工作内容','工作职责','主要工作'],
+    '项目时间':['时间','起止时间'],
+    '担任角色':['角色','职位','职务'],
+    '项目描述':['项目内容','项目简介']
+};
+const FIELD_PATTERNS=[
+    {keys:['手机号码','手机','电话','联系电话','手机号'],re:/1[3-9]\d{9}/},
+    {keys:['邮箱','电子邮件','email','e-mail'],re:/[\w.%+-]+@[\w.-]+\.\w{2,}/},
+    {keys:['政治面貌','政治面目'],re:/中共预备党员|中共党员|共青团员|预备党员|群众/},
+    {keys:['毕业院校','学校','毕业学校'],re:/[\u4e00-\u9fa5]{2,10}大学(?!生)/},
+    {keys:['学院','院系'],re:/[\u4e00-\u9fa5]{2,10}学院/},
+    {keys:['实习时间','项目时间','时间'],re:/20\d{2}[.\-/年]\d{1,2}(?:[.\-/月]\d{1,2}日?)?(?:\s*(?:-|–|~|至)\s*(?:20\d{2}[.\-/年])?\d{1,2}(?:[.\-/月]\d{1,2}日?)?)?/}
+];
+function extractByLabel(title,text,longField){
+    if(!title||!text)return'';
+    const e=String(title).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const cm=new RegExp('(?:^|\\n)[\\t \\u3000]*'+e+'[\\t \\u3000]*[:：]','m').exec(text);
+    if(cm){
+        const after=text.slice(cm.index+cm[0].length);
+        if(longField){
+            const nl=after.indexOf('\n');
+            const first=(nl<0?after:after.slice(0,nl)).trim();
+            const rest=(nl<0?'':after.slice(nl+1)).trim();
+            return[first,rest].filter(Boolean).join('\n');
+        }
+        return(after.split('\n')[0]||'').trim();
+    }
+    const sm=new RegExp('(?:^|\\n)[\\t \\u3000]*'+e+'[\\t \\u3000]+(\\S+)','m').exec(text);
+    if(sm)return sm[1].trim();
+    return'';
+}
+function findSegContent(title,segMap){
+    const bases=[title].concat(SECTION_ALIAS[title]||[]);
+    for(let i=0;i<bases.length;i++){
+        const k=normalizeTitle(bases[i]);
+        if(segMap[k])return segMap[k];
+    }
+    return'';
+}
+function fillLeaf(node,scope,fullText){
+    const titles=[node.title].concat(FIELD_ALIAS[node.title]||[]);
+    const texts=scope?[scope,fullText]:[fullText];
+    const long=/描述|评价|总结|说明|内容|经历|自述/.test(node.title||'');
+    for(let t=0;t<titles.length;t++){
+        for(let x=0;x<texts.length;x++){
+            const v=extractByLabel(titles[t],texts[x],long);
+            if(v){node.content=v;return true;}
+        }
+    }
+    for(let p=0;p<FIELD_PATTERNS.length;p++){
+        if(FIELD_PATTERNS[p].keys.indexOf(node.title)>=0){
+            const src=scope||fullText;
+            const m=FIELD_PATTERNS[p].re.exec(src);
+            if(m&&m[0]){node.content=m[0];return true;}
+        }
+    }
+    if(long&&scope&&scope.trim()){node.content=scope.trim();return true;}
+    return false;
+}
+function fillTreeLevel(list,scope,text,segMap){
+    let c=0;
+    list.forEach(function(n){
+        const kids=n.children||[];
+        if(kids.length)c+=fillTreeLevel(kids,findSegContent(n.title,segMap)||scope,text,segMap);
+        else if(fillLeaf(n,scope,text))c++;
+    });
+    return c;
+}
 function parseResumePDF(e){
     const file=e.target.files[0];e.target.value='';
     if(!file)return;
     if(file.type!=='application/pdf'&&!/\.pdf$/i.test(file.name)){toast('只支持 PDF 文件','error');return;}
-    showConfirm('解析将用 PDF 文字填充同名板块（覆盖现有内容），未匹配的标题会自动新建板块。继续？',async function(){
+    showConfirm('解析将把识别到的信息智能填入你现有的板块和字段（覆盖同名字段的已有文字），不会新增板块。继续？',async function(){
         toast('正在解析 PDF，请稍候...');
         try{
             await loadPdfJs();
@@ -1235,16 +1324,28 @@ function parseResumePDF(e){
             }
             if(!text.trim()){toast('未提取到文字，可能是扫描件 PDF','error');return;}
             const segs=segmentResumeText(text);
-            if(!segs.length){toast('未识别出板块标题（如：教育背景），可手动添加','error');return;}
-            let filled=0,created=0;
+            if(!segs.length){toast('未识别出板块标题（如：教育背景），请检查 PDF 是否为文字版','error');return;}
+            const segMap={};
             segs.forEach(function(s){
-                const hit=resumeInfo.find(function(x){return normalizeTitle(x.title)===normalizeTitle(s.title);});
-                if(hit){hit.content=s.content;filled++;}
-                else{resumeInfo.push({id:nid(),title:s.title,content:s.content,children:[]});created++;}
+                const k=normalizeTitle(s.title);
+                segMap[k]=segMap[k]?segMap[k]+'\n'+s.content:s.content;
             });
+            let filled=0;
+            resumeInfo.forEach(function(top){
+                const scope=findSegContent(top.title,segMap);
+                const kids=top.children||[];
+                if(!kids.length){
+                    let v=scope?scope.trim():'';
+                    if(!v)v=extractByLabel(top.title,text,true);
+                    if(v){top.content=v.trim();filled++;}
+                }else{
+                    filled+=fillTreeLevel(kids,scope,text,segMap);
+                }
+            });
+            if(!filled){toast('未匹配到任何字段，请检查 PDF 结构与板块名称','error');return;}
             if(!saveInfo())return;
             renderInfoSections();
-            toast('解析完成：填充 '+filled+' 个板块，新建 '+created+' 个','success');
+            toast('解析完成：已智能填入 '+filled+' 个字段','success');
         }catch(err){
             console.error(err);
             toast('解析失败：'+(err&&err.message||'未知错误'),'error');
