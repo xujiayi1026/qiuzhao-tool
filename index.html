@@ -5,70 +5,273 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>秋招投递工具台</title>
     <style>
+        :root {
+            --red: #C20C0C;
+            --red-bright: #E60026;
+            --red-light: #FFF1F0;
+            --red-hover: #A80A0A;
+            --bg: #F5F5F5;
+            --card: #FFFFFF;
+            --text1: #333333;
+            --text2: #666666;
+            --text3: #999999;
+            --border: #E8E8E8;
+            --border-light: #F0F0F0;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, 'Microsoft YaHei', sans-serif; background: #f0f2f5; min-height: 100vh; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 30px; color: white; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 24px; font-weight: 600; }
-        .header-info { font-size: 14px; opacity: 0.9; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .stat-card .num { font-size: 36px; font-weight: 700; }
-        .stat-card .label { font-size: 13px; color: #666; margin-top: 4px; }
-        .stat-card:nth-child(1) .num { color: #1890ff; }
-        .stat-card:nth-child(2) .num { color: #faad14; }
-        .stat-card:nth-child(3) .num { color: #722ed1; }
-        .stat-card:nth-child(4) .num { color: #52c41a; }
-        .stat-card:nth-child(5) .num { color: #ff4d4f; }
-        .stat-card:nth-child(6) .num { color: #13c2c2; }
-        .toolbar { background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .btn { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
-        .btn-primary { background: #667eea; color: white; }
-        .btn-primary:hover { background: #5a6fd6; }
-        .btn-danger { background: #ff4d4f; color: white; }
-        .btn-danger:hover { background: #e63e40; }
-        .search-box { flex: 1; min-width: 200px; padding: 8px 16px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; outline: none; }
-        .search-box:focus { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.2); }
-        .filter-btn { padding: 8px 16px; border: 1px solid #d9d9d9; background: white; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-        .filter-btn:hover, .filter-btn.active { border-color: #667eea; color: #667eea; background: #f0f3ff; }
-        .table-wrapper { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        body { font-family: -apple-system, 'Microsoft YaHei', 'PingFang SC', sans-serif; background: var(--bg); color: var(--text1); min-height: 100vh; }
+
+        /* ===== Header ===== */
+        .header {
+            background: linear-gradient(135deg, #C20C0C 0%, #A80A0A 50%, #8B0909 100%);
+            padding: 28px 32px; color: #fff; position: relative; overflow: hidden;
+        }
+        .header::before {
+            content: ''; position: absolute; top: -50%; right: -10%; width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 70%);
+            animation: float 6s ease-in-out infinite;
+        }
+        .header::after {
+            content: ''; position: absolute; bottom: -60px; left: 20%; width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,.05) 0%, transparent 70%);
+            animation: float 8s ease-in-out infinite reverse;
+        }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+        .header-inner { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
+        .header h1 { font-size: 26px; font-weight: 700; letter-spacing: 2px; }
+        .header-sub { font-size: 13px; opacity: .7; margin-top: 4px; letter-spacing: 1px; }
+        .header-info { font-size: 14px; opacity: .75; }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+
+        /* ===== Stats ===== */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .stat-card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px 14px; text-align: center; cursor: default;
+            transition: all .3s cubic-bezier(.4,0,.2,1); position: relative; overflow: hidden;
+        }
+        .stat-card::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px;
+            background: var(--red); transform: scaleX(0); transition: transform .3s;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(194,12,12,.1); border-color: rgba(194,12,12,.2); }
+        .stat-card:hover::after { transform: scaleX(1); }
+        .stat-card .num { font-size: 36px; font-weight: 700; transition: transform .3s; color: var(--text1); }
+        .stat-card:hover .num { transform: scale(1.1); }
+        .stat-card .label { font-size: 12px; color: var(--text3); margin-top: 4px; letter-spacing: 2px; }
+        .stat-card:nth-child(1) .num { color: var(--red); }
+        .stat-card:nth-child(2) .num { color: #1890FF; }
+        .stat-card:nth-child(3) .num { color: #D48806; }
+        .stat-card:nth-child(4) .num { color: #722ED1; }
+        .stat-card:nth-child(5) .num { color: #389E0D; }
+        .stat-card:nth-child(6) .num { color: #CF1322; }
+        .stat-card:nth-child(1)::after { background: var(--red); }
+        .stat-card:nth-child(2)::after { background: #1890FF; }
+        .stat-card:nth-child(3)::after { background: #D48806; }
+        .stat-card:nth-child(4)::after { background: #722ED1; }
+        .stat-card:nth-child(5)::after { background: #389E0D; }
+        .stat-card:nth-child(6)::after { background: #CF1322; }
+
+        /* ===== Toolbar ===== */
+        .toolbar {
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 14px 18px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+        }
+        .btn {
+            padding: 9px 22px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;
+            font-weight: 500; transition: all .25s cubic-bezier(.4,0,.2,1); font-family: inherit;
+            position: relative; overflow: hidden;
+        }
+        .btn::after {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0;
+            background: rgba(255,255,255,.3); border-radius: 50%; transform: translate(-50%,-50%);
+            transition: width .5s, height .5s, opacity .5s; opacity: 0;
+        }
+        .btn:active::after { width: 200px; height: 200px; opacity: 1; transition: 0s; }
+        .btn-primary { background: linear-gradient(135deg, var(--red-bright), var(--red)); color: #fff; box-shadow: 0 2px 8px rgba(194,12,12,.3); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(194,12,12,.4); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-danger { background: #fff; color: #F5222D; border: 1px solid #F5222D; }
+        .btn-danger:hover { background: #F5222D; color: #fff; }
+        .search-box {
+            flex: 1; min-width: 180px; padding: 9px 16px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 13px; outline: none; background: var(--card); color: var(--text1);
+            transition: all .3s;
+        }
+        .search-box:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(194,12,12,.1); }
+        .search-box::placeholder { color: var(--text3); }
+        .filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 6px 14px; border: 1px solid var(--border); background: var(--card); border-radius: 20px;
+            cursor: pointer; font-size: 12px; transition: all .25s cubic-bezier(.4,0,.2,1); color: var(--text2);
+            font-family: inherit; position: relative;
+        }
+        .filter-btn:hover { border-color: var(--red); color: var(--red); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(194,12,12,.12); }
+        .filter-btn.active { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 2px 8px rgba(194,12,12,.3); }
+
+        /* ===== Table ===== */
+        .table-wrapper { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #fafafa; padding: 14px 16px; text-align: left; font-weight: 600; font-size: 13px; color: #666; border-bottom: 1px solid #f0f0f0; }
-        td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
-        tr:hover { background: #fafafa; }
-        .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-        .status-pending { background: #e6f7ff; color: #1890ff; }
-        .status-writtentest { background: #fffbe6; color: #faad14; }
-        .status-interview { background: #f9f0ff; color: #722ed1; }
-        .status-offer { background: #f6ffed; color: #52c41a; }
-        .status-rejected { background: #fff2f0; color: #ff4d4f; }
-        .action-btn { padding: 4px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; margin-right: 6px; transition: all 0.2s; }
-        .action-btn.edit { background: #e6f7ff; color: #1890ff; }
-        .action-btn.edit:hover { background: #1890ff; color: white; }
-        .action-btn.delete { background: #fff2f0; color: #ff4d4f; }
-        .action-btn.delete:hover { background: #ff4d4f; color: white; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: white; border-radius: 16px; padding: 30px; width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
-        .modal h2 { margin-bottom: 24px; font-size: 20px; color: #333; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #333; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; outline: none; font-family: inherit; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.2); }
-        .form-group textarea { resize: vertical; min-height: 80px; }
-        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
-        .modal-actions .btn { padding: 10px 28px; }
-        .progress-bar { width: 100%; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
-        .empty { text-align: center; padding: 60px 20px; color: #999; }
-        .empty-icon { font-size: 64px; margin-bottom: 16px; }
-        @media (max-width: 768px) { .stats { grid-template-columns: repeat(3, 1fr); } .toolbar { flex-direction: column; } }
+        th {
+            background: #FAFAFA; padding: 14px 14px; text-align: left; font-weight: 600; font-size: 12px;
+            color: var(--text2); border-bottom: 1px solid var(--border); letter-spacing: 1px;
+        }
+        td { padding: 14px; border-bottom: 1px solid var(--border-light); font-size: 13px; transition: background .2s; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr { animation: rowIn .4s cubic-bezier(.4,0,.2,1) both; }
+        tbody tr:nth-child(1){animation-delay:.02s} tbody tr:nth-child(2){animation-delay:.06s}
+        tbody tr:nth-child(3){animation-delay:.1s} tbody tr:nth-child(4){animation-delay:.14s}
+        tbody tr:nth-child(5){animation-delay:.18s} tbody tr:nth-child(6){animation-delay:.22s}
+        tbody tr:nth-child(n+7){animation-delay:.25s}
+        @keyframes rowIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        tbody tr:hover td { background: var(--red-light); }
+
+        .status { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; transition: transform .2s; }
+        .status:hover { transform: scale(1.08); }
+        .status-pending { background: #E6F7FF; color: #1890FF; }
+        .status-writtentest { background: #FFF7E6; color: #D48806; }
+        .status-interview { background: #F9F0FF; color: #722ED1; }
+        .status-offer { background: #F6FFED; color: #389E0D; }
+        .status-rejected { background: #FFF1F0; color: #CF1322; }
+
+        .cat-tag { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 500; transition: all .2s; }
+        .cat-tag:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+        .cat-internet { background: #E6F7FF; color: #096DD9; }
+        .cat-fmcg { background: #FFF1F0; color: #CF1322; }
+        .cat-soe { background: #F6FFED; color: #237804; }
+        .cat-bank { background: #FFF7E6; color: #AD6800; }
+        .cat-other { background: #F5F5F5; color: #666; }
+        .cat-none { background: #FAFAFA; color: #BBB; }
+
+        .action-btn {
+            padding: 4px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 11px;
+            margin-right: 5px; transition: all .25s cubic-bezier(.4,0,.2,1); font-family: inherit;
+        }
+        .action-btn.edit { background: #E6F7FF; color: #096DD9; }
+        .action-btn.edit:hover { background: #096DD9; color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(9,109,217,.3); }
+        .action-btn.delete { background: #FFF1F0; color: #CF1322; }
+        .action-btn.delete:hover { background: #CF1322; color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(207,19,34,.3); }
+
+        /* ===== Modal ===== */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,.45); z-index: 1000; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px); opacity: 0; transition: opacity .3s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal {
+            background: var(--card); border-radius: 16px; padding: 30px; width: 92%; max-width: 540px;
+            max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.25);
+            transform: scale(.9) translateY(20px); transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+        }
+        .modal-overlay.active .modal { transform: scale(1) translateY(0); }
+        .modal h2 { margin-bottom: 22px; font-size: 20px; color: var(--text1); letter-spacing: 1px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--text1); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 14px; outline: none; font-family: inherit; background: #FAFAFA; color: var(--text1);
+            transition: all .3s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--red); box-shadow: 0 0 0 3px rgba(194,12,12,.1); background: #fff;
+        }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 22px; }
+        .modal-actions .btn { padding: 10px 32px; }
+        .btn-cancel { background: #F5F5F5; color: var(--text2); }
+        .btn-cancel:hover { background: var(--border); }
+
+        /* ===== Progress ===== */
+        .progress-bar { width: 100%; height: 6px; background: #F0F0F0; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width .6s cubic-bezier(.4,0,.2,1); position: relative; }
+        .progress-fill::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+        .empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+        .empty-icon { font-size: 56px; margin-bottom: 14px; animation: bounce 2s ease-in-out infinite; }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+        /* ===== Upload ===== */
+        .upload-zone {
+            border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center;
+            cursor: pointer; transition: all .3s; background: #FAFAFA; position: relative;
+        }
+        .upload-zone:hover { border-color: var(--red); background: var(--red-light); transform: translateY(-2px); }
+        .upload-zone.has-image { padding: 8px; border-style: solid; border-color: var(--red); }
+        .upload-zone .upload-tip { color: var(--text3); font-size: 13px; }
+        .upload-zone .upload-icon { font-size: 30px; margin-bottom: 6px; transition: transform .3s; }
+        .upload-zone:hover .upload-icon { transform: scale(1.15); }
+        .upload-zone input[type=file] { display: none; }
+        .upload-preview { max-width: 100%; max-height: 200px; border-radius: 6px; display: block; margin: 0 auto; }
+        .upload-remove {
+            position: absolute; top: 4px; right: 4px; background: #F5222D; color: white; border: none;
+            border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 1;
+            transition: transform .2s;
+        }
+        .upload-remove:hover { transform: rotate(90deg) scale(1.1); }
+        .tag-jd { display: inline-block; width: 6px; height: 6px; background: #722ED1; border-radius: 50%; margin-left: 4px; }
+        .tag-img { display: inline-block; width: 6px; height: 6px; background: #13C2C2; border-radius: 50%; margin-left: 4px; }
+        .legend { font-size: 11px; color: var(--text3); margin-top: 8px; text-align: right; }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+            background: var(--text1); color: #fff; padding: 10px 28px; border-radius: 8px;
+            font-size: 14px; z-index: 9999; transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+            box-shadow: 0 8px 30px rgba(0,0,0,.2);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.success { background: #52C41A; }
+        .toast.error { background: #F5222D; }
+
+        /* ===== Confirm Dialog ===== */
+        .confirm-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,.4); z-index: 2000; justify-content: center; align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        .confirm-overlay.active { display: flex; }
+        .confirm-box {
+            background: #fff; border-radius: 14px; padding: 28px; width: 90%; max-width: 360px;
+            text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.2);
+            animation: popIn .35s cubic-bezier(.34,1.56,.64,1);
+        }
+        @keyframes popIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+        .confirm-box .confirm-icon { font-size: 42px; margin-bottom: 12px; }
+        .confirm-box p { font-size: 15px; color: var(--text1); margin-bottom: 20px; }
+        .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+        .confirm-actions .btn { padding: 8px 24px; }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .stat-card { padding: 14px 8px; }
+            .stat-card .num { font-size: 24px; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .form-row { flex-direction: column; gap: 0; }
+            th, td { padding: 8px 6px; font-size: 12px; }
+            .header { padding: 18px 16px; }
+            .header-inner { flex-direction: column; gap: 8px; text-align: center; }
+        }
     </style>
 </head>
 <body>
 <div class="header">
-    <div><h1>📚 秋招投递工具台</h1><div class="header-info">管理你的每一份投递，离 Offer 更近一步</div></div>
-    <div class="header-info" id="dateInfo"></div>
+    <div class="header-inner">
+        <div>
+            <h1>秋招投递工具台</h1>
+            <div class="header-sub">管理你的每一份投递，离 Offer 更近一步</div>
+        </div>
+        <div class="header-info" id="dateInfo"></div>
+    </div>
 </div>
 <div class="container">
     <div class="stats">
@@ -79,64 +282,277 @@
         <div class="stat-card"><div class="num" id="statOffer">0</div><div class="label">已 Offer</div></div>
         <div class="stat-card"><div class="num" id="statRejected">0</div><div class="label">已拒绝</div></div>
     </div>
+
     <div class="toolbar">
         <button class="btn btn-primary" onclick="openModal()">+ 新增投递</button>
-        <input type="text" class="search-box" placeholder="搜索公司/岗位..." id="searchInput" oninput="renderTable()">
-        <button class="filter-btn active" onclick="setFilter('all',this)">全部</button>
-        <button class="filter-btn" onclick="setFilter('pending',this)">待处理</button>
-        <button class="filter-btn" onclick="setFilter('writtentest',this)">笔试中</button>
-        <button class="filter-btn" onclick="setFilter('interview',this)">面试中</button>
-        <button class="filter-btn" onclick="setFilter('offer',this)">已Offer</button>
-        <button class="filter-btn" onclick="setFilter('rejected',this)">已拒绝</button>
-        <button class="btn btn-danger" onclick="clearAll()" style="margin-left:auto;">清空</button>
+        <input type="text" class="search-box" placeholder="搜索公司 / 岗位 / 类别..." id="searchInput" oninput="renderTable()">
+        <div class="filter-row">
+            <button class="filter-btn active" data-type="status" data-val="all" onclick="setFilter('status','all',this)">全部状态</button>
+            <button class="filter-btn" data-type="status" data-val="pending" onclick="setFilter('status','pending',this)">待处理</button>
+            <button class="filter-btn" data-type="status" data-val="writtentest" onclick="setFilter('status','writtentest',this)">笔试</button>
+            <button class="filter-btn" data-type="status" data-val="interview" onclick="setFilter('status','interview',this)">面试</button>
+            <button class="filter-btn" data-type="status" data-val="offer" onclick="setFilter('status','offer',this)">Offer</button>
+            <button class="filter-btn" data-type="status" data-val="rejected" onclick="setFilter('status','rejected',this)">拒绝</button>
+        </div>
+        <div class="filter-row">
+            <button class="filter-btn active" data-type="cat" data-val="all" onclick="setFilter('cat','all',this)">全部类别</button>
+            <button class="filter-btn" data-type="cat" data-val="互联网" onclick="setFilter('cat','互联网',this)">互联网</button>
+            <button class="filter-btn" data-type="cat" data-val="快消" onclick="setFilter('cat','快消',this)">快消</button>
+            <button class="filter-btn" data-type="cat" data-val="央国企" onclick="setFilter('cat','央国企',this)">央国企</button>
+            <button class="filter-btn" data-type="cat" data-val="银行" onclick="setFilter('cat','银行',this)">银行</button>
+            <button class="filter-btn" data-type="cat" data-val="其他" onclick="setFilter('cat','其他',this)">其他</button>
+        </div>
+        <button class="btn btn-danger" onclick="confirmClear()" style="margin-left:auto;">清空</button>
     </div>
+
     <div class="table-wrapper">
-        <table><thead><tr><th>公司</th><th>岗位</th><th>投递时间</th><th>状态</th><th>备注</th><th>进度</th><th>操作</th></tr></thead><tbody id="tableBody"></tbody></table>
-        <div class="empty" id="emptyState"><div class="empty-icon">📭</div><p>还没有投递记录，点击「新增投递」开始吧！</p></div>
+        <table>
+            <thead><tr><th>公司</th><th>类别</th><th>岗位</th><th>投递时间</th><th>状态</th><th>备注</th><th>附件</th><th>进度</th><th>操作</th></tr></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty" id="emptyState"><div class="empty-icon">📬</div><p>还没有投递记录，点击「新增投递」开始吧</p></div>
     </div>
+    <div class="legend">● 紫色=JD &nbsp;&nbsp; ● 青色=图片</div>
 </div>
+
+<!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
         <h2 id="modalTitle">新增投递</h2>
         <input type="hidden" id="editId">
         <div class="form-group"><label>公司名称 *</label><input type="text" id="companyInput" placeholder="如：Babycare"></div>
-        <div class="form-group"><label>岗位名称 *</label><input type="text" id="positionInput" placeholder="如：产品经理"></div>
-        <div class="form-group"><label>投递时间</label><input type="date" id="dateInput"></div>
-        <div class="form-group"><label>当前状态</label><select id="statusInput"><option value="pending">待处理</option><option value="writtentest">笔试中</option><option value="interview">面试中</option><option value="offer">已 Offer</option><option value="rejected">已拒绝</option></select></div>
+        <div class="form-row">
+            <div class="form-group"><label>类别</label>
+                <select id="catInput">
+                    <option value="">请选择</option>
+                    <option value="互联网">互联网</option>
+                    <option value="快消">快消</option>
+                    <option value="央国企">央国企</option>
+                    <option value="银行">银行</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            <div class="form-group"><label>岗位名称 *</label><input type="text" id="positionInput" placeholder="如：产品经理"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>投递时间</label><input type="date" id="dateInput"></div>
+            <div class="form-group"><label>当前状态</label>
+                <select id="statusInput">
+                    <option value="pending">待处理</option>
+                    <option value="writtentest">笔试中</option>
+                    <option value="interview">面试中</option>
+                    <option value="offer">已 Offer</option>
+                    <option value="rejected">已拒绝</option>
+                </select>
+            </div>
+        </div>
         <div class="form-group"><label>备注</label><textarea id="noteInput" placeholder="一面时间、准备重点、面试反馈等"></textarea></div>
-        <div class="modal-actions"><button class="btn" onclick="closeModal()" style="background:#f5f5f5;">取消</button><button class="btn btn-primary" onclick="saveItem()">保存</button></div>
+        <div class="form-group"><label>岗位 JD</label><textarea id="jdInput" placeholder="粘贴岗位描述，如：负责XX产品的需求分析、原型设计..." style="min-height:90px"></textarea></div>
+        <div class="form-group">
+            <label>图片（截图 / 职位描述截图）</label>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                <div class="upload-tip" id="uploadTip"><div class="upload-icon">🖼️</div>点击或拖拽上传图片</div>
+                <img class="upload-preview" id="imagePreview" style="display:none">
+                <button type="button" class="upload-remove" id="uploadRemove" style="display:none" onclick="event.stopPropagation();removeImage()">×</button>
+            </div>
+            <input type="file" id="imageInput" accept="image/*" onchange="handleImage(event)">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveItem()">保存</button>
+        </div>
     </div>
 </div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <div class="confirm-icon">⚠️</div>
+        <p id="confirmText">确定要执行此操作吗？</p>
+        <div class="confirm-actions">
+            <button class="btn btn-cancel" onclick="closeConfirm()">取消</button>
+            <button class="btn btn-primary" id="confirmOk" style="background:linear-gradient(135deg,#F5222D,#CF1322);">确定</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const STATUS_MAP={pending:{text:'待处理',cls:'status-pending',p:20},writtentest:{text:'笔试中',cls:'status-writtentest',p:40},interview:{text:'面试中',cls:'status-interview',p:70},offer:{text:'已 Offer',cls:'status-offer',p:100},rejected:{text:'已拒绝',cls:'status-rejected',p:0}};
+const CAT_MAP={'互联网':'cat-internet','快消':'cat-fmcg','央国企':'cat-soe','银行':'cat-bank','其他':'cat-other'};
+const STATUS_COLOR={pending:'#1890FF',writtentest:'#FA8C16',interview:'#722ED1',offer:'#52C41A',rejected:'#F5222D'};
 let data=JSON.parse(localStorage.getItem('autumnRecruitData')||'[]');
-let currentFilter='all';
+let filterStatus='all', filterCat='all';
 document.getElementById('dateInfo').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
 document.getElementById('dateInput').valueAsDate=new Date();
 
+// Toast
+function toast(msg,type=''){
+    const t=document.createElement('div');
+    t.className='toast '+type; t.textContent=msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+    setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400)},2200);
+}
+
+// Confirm
+let confirmCb=null;
+function showConfirm(text,cb){
+    document.getElementById('confirmText').textContent=text;
+    confirmCb=cb;
+    document.getElementById('confirmOverlay').classList.add('active');
+}
+function closeConfirm(){document.getElementById('confirmOverlay').classList.remove('active');confirmCb=null;}
+document.getElementById('confirmOk').addEventListener('click',function(){if(confirmCb)confirmCb();closeConfirm();});
+
 function renderTable(){
     const kw=document.getElementById('searchInput').value.toLowerCase();
-    let f=data.filter(i=>(currentFilter==='all'||i.status===currentFilter)&&(!kw||i.company.toLowerCase().includes(kw)||i.position.toLowerCase().includes(kw)));
+    let f=data.filter(i=>{
+        if(filterStatus!=='all'&&i.status!==filterStatus)return false;
+        if(filterCat!=='all'&&i.cat!==filterCat)return false;
+        if(kw){
+            const hay=(i.company+' '+i.position+' '+(i.cat||'')+' '+(i.note||'')).toLowerCase();
+            if(!hay.includes(kw))return false;
+        }
+        return true;
+    });
     const t=document.getElementById('tableBody'),e=document.getElementById('emptyState');
     if(!f.length){t.innerHTML='';e.style.display='block';}
-    else{e.style.display='none';t.innerHTML=f.map(i=>{const s=STATUS_MAP[i.status];return`<tr><td><strong>${i.company}</strong></td><td>${i.position}</td><td>${i.date||'-'}</td><td><span class="status ${s.cls}">${s.text}</span></td><td style="max-width:200px;color:#888;font-size:13px">${i.note||'-'}</td><td style="width:120px"><div class="progress-bar"><div class="progress-fill" style="width:${s.p}%;background:${s.p===100?'#52c41a':s.p===0?'#ff4d4f':'#667eea'}"></div></div></td><td><button class="action-btn edit" onclick="editItem('${i.id}')">编辑</button><button class="action-btn delete" onclick="deleteItem('${i.id}')">删除</button></td></tr>`}).join('');}
+    else{
+        e.style.display='none';
+        t.innerHTML=f.map(i=>{
+            const s=STATUS_MAP[i.status];
+            const catCls=CAT_MAP[i.cat]||'cat-none';
+            const catText=i.cat||'未分类';
+            const att=(i.jd?'<span class="tag-jd" title="有JD"></span>':'')+(i.image?'<span class="tag-img" title="有图片"></span>':'')||'-';
+            const pgc=STATUS_COLOR[i.status]||'#999';
+            return`<tr><td><strong>${i.company}</strong></td><td><span class="cat-tag ${catCls}">${catText}</span></td><td>${i.position}</td><td style="white-space:nowrap">${i.date||'-'}</td><td><span class="status ${s.cls}">${s.text}</span></td><td style="max-width:160px;color:var(--text3);font-size:12px">${i.note||'-'}</td><td>${att}</td><td style="width:100px"><div class="progress-bar"><div class="progress-fill" style="width:${s.p}%;background:${pgc}"></div></div></td><td style="white-space:nowrap"><button class="action-btn edit" onclick="editItem('${i.id}')">编辑</button><button class="action-btn delete" onclick="deleteItem('${i.id}')">删除</button></td></tr>`;
+        }).join('');
+    }
     updateStats();
 }
 function updateStats(){
-    document.getElementById('statTotal').textContent=data.length;
-    document.getElementById('statPending').textContent=data.filter(i=>i.status==='pending').length;
-    document.getElementById('statWritten').textContent=data.filter(i=>i.status==='writtentest').length;
-    document.getElementById('statInterview').textContent=data.filter(i=>i.status==='interview').length;
-    document.getElementById('statOffer').textContent=data.filter(i=>i.status==='offer').length;
-    document.getElementById('statRejected').textContent=data.filter(i=>i.status==='rejected').length;
+    animateNum('statTotal',data.length);
+    animateNum('statPending',data.filter(i=>i.status==='pending').length);
+    animateNum('statWritten',data.filter(i=>i.status==='writtentest').length);
+    animateNum('statInterview',data.filter(i=>i.status==='interview').length);
+    animateNum('statOffer',data.filter(i=>i.status==='offer').length);
+    animateNum('statRejected',data.filter(i=>i.status==='rejected').length);
 }
-function setFilter(s,el){currentFilter=s;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderTable();}
-function openModal(id){document.getElementById('modalOverlay').classList.add('active');if(!id){document.getElementById('modalTitle').textContent='新增投递';document.getElementById('editId').value='';document.getElementById('companyInput').value='';document.getElementById('positionInput').value='';document.getElementById('dateInput').valueAsDate=new Date();document.getElementById('statusInput').value='pending';document.getElementById('noteInput').value='';}}
+function animateNum(id,target){
+    const el=document.getElementById(id);
+    const cur=parseInt(el.textContent)||0;
+    if(cur===target){el.textContent=target;return;}
+    const step=cur<target?1:-1;
+    let val=cur;
+    const timer=setInterval(()=>{val+=step;el.textContent=val;if(val===target)clearInterval(timer);},40);
+}
+function setFilter(type,val,el){
+    if(type==='status')filterStatus=val;else filterCat=val;
+    document.querySelectorAll(`.filter-btn[data-type="${type}"]`).forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+    renderTable();
+}
+
+let currentImage='';
+function openModal(id){
+    document.getElementById('modalOverlay').classList.add('active');
+    if(!id){
+        document.getElementById('modalTitle').textContent='新增投递';
+        document.getElementById('editId').value='';
+        document.getElementById('companyInput').value='';
+        document.getElementById('catInput').value='';
+        document.getElementById('positionInput').value='';
+        document.getElementById('dateInput').valueAsDate=new Date();
+        document.getElementById('statusInput').value='pending';
+        document.getElementById('noteInput').value='';
+        document.getElementById('jdInput').value='';
+        clearImage();
+    }
+}
 function closeModal(){document.getElementById('modalOverlay').classList.remove('active');}
-function saveItem(){const c=document.getElementById('companyInput').value.trim(),p=document.getElementById('positionInput').value.trim();if(!c||!p){alert('请填写公司和岗位！');return;}const item={id:document.getElementById('editId').value||Date.now().toString(),company:c,position:p,date:document.getElementById('dateInput').value,status:document.getElementById('statusInput').value,note:document.getElementById('noteInput').value.trim()};const idx=data.findIndex(i=>i.id===item.id);if(idx>=0)data[idx]=item;else data.push(item);localStorage.setItem('autumnRecruitData',JSON.stringify(data));closeModal();renderTable();}
-function editItem(id){const i=data.find(x=>x.id===id);if(!i)return;openModal(id);document.getElementById('modalTitle').textContent='编辑投递';document.getElementById('editId').value=i.id;document.getElementById('companyInput').value=i.company;document.getElementById('positionInput').value=i.position;document.getElementById('dateInput').value=i.date;document.getElementById('statusInput').value=i.status;document.getElementById('noteInput').value=i.note;}
-function deleteItem(id){if(!confirm('确认删除此投递记录？'))return;data=data.filter(i=>i.id!==id);localStorage.setItem('autumnRecruitData',JSON.stringify(data));renderTable();}
-function clearAll(){if(!confirm('确认清空所有数据？'))return;data=[];localStorage.setItem('autumnRecruitData',JSON.stringify(data));renderTable();}
+
+function handleImage(e){
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){currentImage=ev.target.result;showImagePreview(currentImage);};
+    reader.readAsDataURL(file);
+}
+function showImagePreview(src){
+    document.getElementById('uploadZone').classList.add('has-image');
+    document.getElementById('uploadTip').style.display='none';
+    document.getElementById('imagePreview').src=src;
+    document.getElementById('imagePreview').style.display='block';
+    document.getElementById('uploadRemove').style.display='block';
+}
+function clearImage(){
+    currentImage='';
+    document.getElementById('imageInput').value='';
+    document.getElementById('uploadZone').classList.remove('has-image');
+    document.getElementById('imagePreview').src='';
+    document.getElementById('imagePreview').style.display='none';
+    document.getElementById('uploadTip').style.display='block';
+    document.getElementById('uploadRemove').style.display='none';
+}
+function removeImage(e){if(e)e.stopPropagation();clearImage();}
+
+const uploadZone=document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover',function(e){e.preventDefault();this.style.borderColor='var(--red)';this.style.background='var(--red-light)';});
+uploadZone.addEventListener('dragleave',function(){this.style.borderColor='';this.style.background='';});
+uploadZone.addEventListener('drop',function(e){
+    e.preventDefault();this.style.borderColor='';this.style.background='';
+    const file=e.dataTransfer.files[0];
+    if(file&&file.type.startsWith('image/')){
+        const input=document.getElementById('imageInput');
+        const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;
+        handleImage({target:{files:[file]}});
+    }
+});
+
+function saveItem(){
+    const c=document.getElementById('companyInput').value.trim();
+    const p=document.getElementById('positionInput').value.trim();
+    if(!c||!p){toast('请填写公司和岗位！','error');return;}
+    const item={
+        id:document.getElementById('editId').value||Date.now().toString(),
+        company:c, cat:document.getElementById('catInput').value, position:p,
+        date:document.getElementById('dateInput').value,
+        status:document.getElementById('statusInput').value,
+        note:document.getElementById('noteInput').value.trim(),
+        jd:document.getElementById('jdInput').value.trim(),
+        image:currentImage
+    };
+    const idx=data.findIndex(i=>i.id===item.id);
+    if(idx>=0){data[idx]=item;toast('已更新','success');}else{data.push(item);toast('已保存','success');}
+    localStorage.setItem('autumnRecruitData',JSON.stringify(data));
+    closeModal();renderTable();
+}
+function editItem(id){
+    const i=data.find(x=>x.id===id);if(!i)return;
+    openModal(id);
+    document.getElementById('modalTitle').textContent='编辑投递';
+    document.getElementById('editId').value=i.id;
+    document.getElementById('companyInput').value=i.company;
+    document.getElementById('catInput').value=i.cat||'';
+    document.getElementById('positionInput').value=i.position;
+    document.getElementById('dateInput').value=i.date;
+    document.getElementById('statusInput').value=i.status;
+    document.getElementById('noteInput').value=i.note;
+    document.getElementById('jdInput').value=i.jd||'';
+    if(i.image){currentImage=i.image;showImagePreview(i.image);}else{clearImage();}
+}
+function deleteItem(id){
+    showConfirm('确认删除此投递记录？',()=>{
+        data=data.filter(i=>i.id!==id);
+        localStorage.setItem('autumnRecruitData',JSON.stringify(data));
+        renderTable();toast('已删除','success');
+    });
+}
+function confirmClear(){
+    showConfirm('确认清空所有数据？此操作不可恢复！',()=>{
+        data=[];localStorage.setItem('autumnRecruitData',JSON.stringify(data));
+        renderTable();toast('已清空','success');
+    });
+}
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 renderTable();
 </script>
