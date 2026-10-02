@@ -220,7 +220,6 @@
         .upload-remove:hover { transform: rotate(90deg) scale(1.1); }
         .tag-jd { display: inline-block; width: 6px; height: 6px; background: #722ED1; border-radius: 50%; margin-left: 4px; }
         .tag-img { display: inline-block; width: 6px; height: 6px; background: #13C2C2; border-radius: 50%; margin-left: 4px; }
-        .legend { font-size: 11px; color: var(--text3); margin-top: 8px; text-align: right; }
 
         /* ===== Toast ===== */
         .toast {
@@ -271,8 +270,8 @@
             .filter-row { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
             .filter-row::-webkit-scrollbar { display: none; }
             .filter-btn { flex-shrink: 0; padding: 7px 14px; font-size: 12px; }
-            .action-group { margin-left: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-            .action-group .btn { padding: 10px; font-size: 13px; }
+            .action-group { margin-left: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+            .action-group .btn { padding: 10px 4px; font-size: 13px; }
 
             /* 表格 → 卡片 */
             .table-wrapper { background: transparent; border: none; border-radius: 0; overflow: visible; }
@@ -308,7 +307,6 @@
             .action-btn { padding: 8px 20px; font-size: 13px; border-radius: 8px; }
             td[data-label="进度"] .progress-bar { width: 110px; }
 
-            .legend { text-align: center; font-size: 11px; }
             .empty { padding: 40px 16px; }
             .empty-icon { font-size: 44px; }
 
@@ -373,6 +371,7 @@
             <button class="btn btn-danger" onclick="confirmClear()">清空</button>
             <button class="btn btn-cancel" onclick="exportData()" title="导出为JSON文件">导出</button>
             <button class="btn btn-cancel" onclick="document.getElementById('importInput').click()" title="从JSON文件导入">导入</button>
+            <button class="btn btn-cancel" onclick="shareApp()" title="复制链接分享给朋友">分享</button>
             <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
         </div>
     </div>
@@ -384,7 +383,6 @@
         </table>
         <div class="empty" id="emptyState"><div class="empty-icon">📬</div><p>还没有投递记录，点击「新增投递」开始吧</p></div>
     </div>
-    <div class="legend">● 紫色=JD &nbsp;&nbsp; ● 青色=图片</div>
 </div>
 
 <!-- Modal -->
@@ -452,10 +450,8 @@
 const STATUS_MAP={pending:{text:'待处理',cls:'status-pending',p:20},writtentest:{text:'笔试中',cls:'status-writtentest',p:40},interview:{text:'面试中',cls:'status-interview',p:70},offer:{text:'已 Offer',cls:'status-offer',p:100},rejected:{text:'已拒绝',cls:'status-rejected',p:0}};
 const CAT_MAP={'互联网':'cat-internet','快消':'cat-fmcg','央国企':'cat-soe','银行':'cat-bank','其他':'cat-other'};
 const STATUS_COLOR={pending:'#1890FF',writtentest:'#FA8C16',interview:'#722ED1',offer:'#52C41A',rejected:'#F5222D'};
-const SEED_DATA=[{"id":"1790917319219","company":"Babycare","cat":"快消","position":"产品经理","date":"2026-10-02","status":"pending","note":"","jd":"","image":""},{"id":"1790917351477","company":"认养一头牛","cat":"快消","position":"乳制品产品经理","date":"2026-10-02","status":"pending","note":"","jd":"","image":""},{"id":"1790917870299","company":"认养一头牛","cat":"快消","position":"IT产品经理","date":"2026-10-02","status":"rejected","note":"","jd":"","image":""}];
-let data=JSON.parse(localStorage.getItem('autumnRecruitData')||'null');
-if(data===null){data=SEED_DATA;localStorage.setItem('autumnRecruitData',JSON.stringify(data));}
-else if(!Array.isArray(data))data=[];
+let data=JSON.parse(localStorage.getItem('autumnRecruitData')||'[]');
+if(!Array.isArray(data))data=[];
 let filterStatus='all', filterCat='all';
 document.getElementById('dateInfo').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
 document.getElementById('dateInput').valueAsDate=new Date();
@@ -627,6 +623,14 @@ function confirmClear(){
         data=[];localStorage.setItem('autumnRecruitData',JSON.stringify(data));
         renderTable();toast('已清空','success');
     });
+}
+function shareApp(){
+    const url=location.href;
+    if(navigator.share){
+        navigator.share({title:'秋招投递工具台',text:'我一直在用这个管理秋招投递，你也可以试试',url}).catch(()=>{});
+    }else if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(()=>toast('链接已复制，发给朋友即可（对方看到的是自己的数据）','success')).catch(()=>prompt('复制这个链接分享：',url));
+    }else{prompt('复制这个链接分享：',url);}
 }
 function exportData(){
     const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
