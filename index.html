@@ -240,6 +240,7 @@
         .panel-header h2 { font-size: 18px; color: var(--text1); letter-spacing: 1px; }
         .panel-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
         .panel-header .btn { flex-shrink: 0; }
+        .header-btns { display: flex; gap: 8px; flex-shrink: 0; }
 
         /* 简历库 */
         .resume-list { display: flex; flex-direction: column; gap: 10px; }
@@ -416,6 +417,7 @@
             .panel { padding: 14px 12px; border-radius: 10px; }
             .panel-header { flex-direction: column; gap: 10px; }
             .panel-header .btn { width: 100%; padding: 12px; }
+            .header-btns { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
             .resume-item { flex-wrap: wrap; padding: 12px; gap: 10px; }
             .resume-meta { flex-basis: calc(100% - 58px); }
             .resume-actions { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -511,8 +513,12 @@
     <div id="viewResumeInfo" style="display:none">
         <div class="panel">
             <div class="panel-header">
-                <div><h2>📝 简历全信息</h2><p class="panel-sub">自定义板块名称，把简历信息都存这里，网申时随取随用</p></div>
-                <button class="btn btn-primary" onclick="addInfoSection()">+ 添加板块</button>
+                <div><h2>📝 简历信息</h2><p class="panel-sub">自定义板块，把简历信息都存这里；也可上传 PDF 自动解析填充</p></div>
+                <div class="header-btns">
+                    <button class="btn btn-cancel" onclick="document.getElementById('pdfParseInput').click()">🔍 解析简历</button>
+                    <button class="btn btn-primary" onclick="addInfoSection()">+ 添加板块</button>
+                    <input type="file" id="pdfParseInput" accept=".pdf,application/pdf" style="display:none" onchange="parseResumePDF(event)">
+                </div>
             </div>
             <div id="infoSections"></div>
             <div class="empty" id="infoEmpty" style="display:none"><div class="empty-icon">✏️</div><p>还没有板块，点击「添加板块」开始整理你的简历信息</p></div>
@@ -1016,6 +1022,121 @@ function updateNodeContent(id,el){
     if(sec){const c=sec.querySelector('.info-foot .info-count');if(c)c.textContent=el.value.length+' 字';}
     clearTimeout(infoTimer);
     infoTimer=setTimeout(saveInfo,400);
+}
+
+// ===== 简历 PDF 解析 =====
+const RESUME_HEADING_KEYWORDS=['个人信息','基本资料','教育背景','教育经历','学习经历','校园经历','学生工作','社会实践','工作经验','工作经历','实习经历','实习经验','项目经历','项目经验','科研经历','论文专利','竞赛经历','志愿经历','专业技能','技能特长','技能清单','语言能力','自我评价','自我介绍','获奖情况','荣誉证书','所获荣誉','荣誉奖项','证书资质','职业证书','兴趣爱好'];
+let _pdfjsLoad=null;
+function loadPdfJs(){
+    if(window.pdfjsLib)return Promise.resolve();
+    if(_pdfjsLoad)return _pdfjsLoad;
+    const ver='3.11.174';
+    const bases=[
+        'https://cdn.jsdelivr.net/npm/pdfjs-dist@'+ver+'/build/',
+        'https://unpkg.com/pdfjs-dist@'+ver+'/build/'
+    ];
+    _pdfjsLoad=new Promise((resolve,reject)=>{
+        let i=0;
+        const tryNext=()=>{
+            if(i>=bases.length){_pdfjsLoad=null;reject(new Error('解析组件加载失败，请检查网络'));return;}
+            const base=bases[i++];
+            const s=document.createElement('script');
+            s.src=base+'pdf.min.js';
+            s.onload=function(){
+                if(window.pdfjsLib){
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js';
+                    resolve();
+                }else{tryNext();}
+            };
+            s.onerror=tryNext;
+            document.head.appendChild(s);
+        };
+        tryNext();
+    });
+    return _pdfjsLoad;
+}
+function normalizeTitle(s){
+    return String(s||'')
+        .replace(/^[0-9①②③④⑤⑥⑦⑧⑨⑩一二三四五六七八九十]+[、.．)）]?\s*/,'')
+        .replace(/[\s:：.。、·•\-—_()（）\[\]【】]/g,'')
+        .toLowerCase();
+}
+function pdfPageToText(tc){
+    const lines={};
+    tc.items.forEach(function(it){
+        if(!it.str)return;
+        const y=Math.round(it.transform[5]);
+        if(!lines[y])lines[y]=[];
+        lines[y].push(it);
+    });
+    return Object.keys(lines).map(Number).sort(function(a,b){return b-a;})
+        .map(function(y){
+            return lines[y].sort(function(a,b){return a.transform[4]-b.transform[4];})
+                .map(function(i){return i.str;}).join('').trim();
+        })
+        .filter(function(l){return l;})
+        .join('\n');
+}
+function segmentResumeText(text){
+    const lines=text.split(/\r?\n/).map(function(l){return l.trim();}).filter(function(l){return l.length;});
+    const userNorms=resumeInfo.map(function(s){return normalizeTitle(s.title);}).filter(function(n){return n.length>=2;});
+    const heads=[];
+    lines.forEach(function(l,i){
+        if(l.length>16)return;
+        const n=normalizeTitle(l);
+        if(!n||n.length<2)return;
+        let title=null;
+        if(userNorms.indexOf(n)>=0){title=l.replace(/[:：\s]+$/,'');}
+        else{
+            const hit=RESUME_HEADING_KEYWORDS.find(function(h){return normalizeTitle(h)===n;});
+            if(hit)title=hit;
+        }
+        if(title)heads.push({i:i,title:title});
+    });
+    if(!heads.length)return [];
+    const segs=[];
+    heads.forEach(function(h,k){
+        const end=k<heads.length-1?heads[k+1].i:lines.length;
+        const content=lines.slice(h.i+1,end).join('\n').trim();
+        if(content)segs.push({title:h.title,content:content});
+    });
+    const map={};
+    segs.forEach(function(s){map[s.title]=map[s.title]?map[s.title]+'\n'+s.content:s.content;});
+    return Object.keys(map).map(function(t){return{title:t,content:map[t]};});
+}
+function parseResumePDF(e){
+    const file=e.target.files[0];e.target.value='';
+    if(!file)return;
+    if(file.type!=='application/pdf'&&!/\.pdf$/i.test(file.name)){toast('只支持 PDF 文件','error');return;}
+    showConfirm('解析将用 PDF 文字填充同名板块（覆盖现有内容），未匹配的标题会自动新建板块。继续？',async function(){
+        toast('正在解析 PDF，请稍候...');
+        try{
+            await loadPdfJs();
+            const buf=await file.arrayBuffer();
+            const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+            let text='';
+            for(let p=1;p<=pdf.numPages;p++){
+                const page=await pdf.getPage(p);
+                const tc=await page.getTextContent();
+                text+=pdfPageToText(tc)+'\n';
+            }
+            if(!text.trim()){toast('未提取到文字，可能是扫描件 PDF','error');return;}
+            const segs=segmentResumeText(text);
+            if(!segs.length){toast('未识别出板块标题（如：教育背景），可手动添加','error');return;}
+            let filled=0,created=0;
+            segs.forEach(function(s){
+                const hit=resumeInfo.find(function(x){return normalizeTitle(x.title)===normalizeTitle(s.title);});
+                if(hit){hit.content=s.content;filled++;}
+                else{resumeInfo.push({id:nid(),title:s.title,content:s.content,children:[]});created++;}
+            });
+            if(!saveInfo())return;
+            renderInfoSections();
+            toast('解析完成：填充 '+filled+' 个板块，新建 '+created+' 个','success');
+        }catch(err){
+            console.error(err);
+            toast('解析失败：'+(err&&err.message||'未知错误'),'error');
+        }
+    });
 }
 
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
