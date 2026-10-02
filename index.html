@@ -221,6 +221,68 @@
         .tag-jd { display: inline-block; width: 6px; height: 6px; background: #722ED1; border-radius: 50%; margin-left: 4px; }
         .tag-img { display: inline-block; width: 6px; height: 6px; background: #13C2C2; border-radius: 50%; margin-left: 4px; }
 
+        /* ===== Nav Tabs ===== */
+        .nav-tabs { display: flex; gap: 6px; margin-top: 18px; position: relative; z-index: 1; }
+        .nav-tab {
+            padding: 9px 22px; border: none; background: rgba(255,255,255,.12); color: rgba(255,255,255,.85);
+            border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-family: inherit;
+            transition: all .25s cubic-bezier(.4,0,.2,1); position: relative; top: 2px;
+        }
+        .nav-tab:hover { background: rgba(255,255,255,.22); transform: translateY(-2px); }
+        .nav-tab.active { background: var(--bg); color: var(--red); font-weight: 600; }
+
+        /* ===== Panel（简历库/简历信息） ===== */
+        .panel {
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; animation: rowIn .35s cubic-bezier(.4,0,.2,1) both;
+        }
+        .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+        .panel-header h2 { font-size: 18px; color: var(--text1); letter-spacing: 1px; }
+        .panel-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+        .panel-header .btn { flex-shrink: 0; }
+
+        /* 简历库 */
+        .resume-list { display: flex; flex-direction: column; gap: 10px; }
+        .resume-item {
+            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+            border: 1px solid var(--border); border-radius: 10px; transition: all .25s;
+            animation: rowIn .35s cubic-bezier(.4,0,.2,1) both;
+        }
+        .resume-item:hover { border-color: rgba(194,12,12,.35); box-shadow: 0 4px 14px rgba(194,12,12,.08); transform: translateY(-2px); }
+        .resume-icon {
+            width: 44px; height: 52px; background: linear-gradient(135deg, #FFF1F0, #FFD9D6); border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+        }
+        .resume-meta { flex: 1; min-width: 0; }
+        .resume-name { font-size: 15px; font-weight: 600; color: var(--text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .resume-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+        .resume-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .storage-tip { margin-top: 14px; font-size: 12px; color: var(--text3); background: #FFFBF0; border: 1px dashed #FFD591; border-radius: 8px; padding: 10px 14px; }
+
+        /* 简历信息板块 */
+        .info-section {
+            border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px;
+            transition: all .25s; animation: rowIn .35s cubic-bezier(.4,0,.2,1) both;
+        }
+        .info-section:hover { border-color: rgba(194,12,12,.3); box-shadow: 0 4px 14px rgba(194,12,12,.06); }
+        .info-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .info-title {
+            flex: 1; border: none; background: transparent; font-size: 16px; font-weight: 700;
+            color: var(--red); outline: none; padding: 4px 8px; border-radius: 6px;
+            border-bottom: 2px solid transparent; transition: all .25s; font-family: inherit;
+        }
+        .info-title:focus { background: var(--red-light); border-bottom-color: var(--red); }
+        .info-title::placeholder { color: var(--text3); font-weight: 400; }
+        .info-section textarea {
+            width: 100%; min-height: 110px; padding: 12px 14px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 14px; line-height: 1.7; resize: vertical; outline: none;
+            background: #FAFAFA; color: var(--text1); font-family: inherit; transition: all .3s;
+        }
+        .info-section textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(194,12,12,.1); background: #fff; }
+        .info-section textarea::placeholder { color: var(--text3); }
+        .info-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+        .info-count { font-size: 11px; color: var(--text3); }
+
         /* ===== Toast ===== */
         .toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
@@ -321,6 +383,21 @@
             .confirm-box { padding: 24px 18px; }
             .confirm-actions .btn { flex: 1; padding: 12px; }
             .toast { padding: 11px 22px; font-size: 14px; width: max-content; max-width: 90vw; }
+
+            /* 标签页 + 新面板 */
+            .nav-tabs { margin-top: 14px; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+            .nav-tabs::-webkit-scrollbar { display: none; }
+            .nav-tab { flex: 1; padding: 10px 8px; font-size: 13px; white-space: nowrap; text-align: center; }
+            .panel { padding: 14px 12px; border-radius: 10px; }
+            .panel-header { flex-direction: column; gap: 10px; }
+            .panel-header .btn { width: 100%; padding: 12px; }
+            .resume-item { flex-wrap: wrap; padding: 12px; gap: 10px; }
+            .resume-meta { flex-basis: calc(100% - 58px); }
+            .resume-actions { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .resume-actions .action-btn { padding: 9px; font-size: 13px; border-radius: 8px; }
+            .info-section { padding: 12px; }
+            .info-title { font-size: 15px; }
+            .info-section textarea { min-height: 130px; font-size: 15px; }
         }
         @media (max-width: 380px) {
             .stats { grid-template-columns: repeat(2, 1fr); }
@@ -337,8 +414,14 @@
         </div>
         <div class="header-info" id="dateInfo"></div>
     </div>
+    <div class="nav-tabs">
+        <button class="nav-tab active" data-view="main" onclick="switchView('main',this)">📊 投递管理</button>
+        <button class="nav-tab" data-view="resumes" onclick="switchView('resumes',this)">📄 简历库</button>
+        <button class="nav-tab" data-view="resumeinfo" onclick="switchView('resumeinfo',this)">📝 简历信息</button>
+    </div>
 </div>
 <div class="container">
+    <div id="viewMain">
     <div class="stats">
         <div class="stat-card"><div class="num" id="statTotal">0</div><div class="label">总投递</div></div>
         <div class="stat-card"><div class="num" id="statPending">0</div><div class="label">待处理</div></div>
@@ -382,6 +465,31 @@
             <tbody id="tableBody"></tbody>
         </table>
         <div class="empty" id="emptyState"><div class="empty-icon">📬</div><p>还没有投递记录，点击「新增投递」开始吧</p></div>
+    </div>
+    </div><!-- /viewMain -->
+
+    <div id="viewResumes" style="display:none">
+        <div class="panel">
+            <div class="panel-header">
+                <div><h2>📄 简历库</h2><p class="panel-sub">上传不同版本的简历 PDF，随时下载投递</p></div>
+                <button class="btn btn-primary" onclick="document.getElementById('resumeFileInput').click()">+ 上传简历</button>
+            </div>
+            <input type="file" id="resumeFileInput" accept=".pdf,application/pdf" style="display:none" onchange="handleResumeUpload(event)">
+            <div class="resume-list" id="resumeList"></div>
+            <div class="empty" id="resumeEmpty" style="display:none"><div class="empty-icon">📄</div><p>还没有简历，点击「上传简历」添加 PDF</p></div>
+            <div class="storage-tip" id="storageTip" style="display:none"></div>
+        </div>
+    </div>
+
+    <div id="viewResumeInfo" style="display:none">
+        <div class="panel">
+            <div class="panel-header">
+                <div><h2>📝 简历全信息</h2><p class="panel-sub">自定义板块名称，把简历信息都存这里，网申时随取随用</p></div>
+                <button class="btn btn-primary" onclick="addInfoSection()">+ 添加板块</button>
+            </div>
+            <div id="infoSections"></div>
+            <div class="empty" id="infoEmpty" style="display:none"><div class="empty-icon">✏️</div><p>还没有板块，点击「添加板块」开始整理你的简历信息</p></div>
+        </div>
     </div>
 </div>
 
@@ -658,6 +766,140 @@ function importData(e){
     reader.readAsText(file);
     e.target.value='';
 }
+// ===== 视图切换 =====
+function switchView(view,el){
+    document.getElementById('viewMain').style.display=view==='main'?'':'none';
+    document.getElementById('viewResumes').style.display=view==='resumes'?'':'none';
+    document.getElementById('viewResumeInfo').style.display=view==='resumeinfo'?'':'none';
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    if(el)el.classList.add('active');
+    if(view==='resumes')renderResumes();
+    if(view==='resumeinfo')renderInfoSections();
+}
+
+// ===== 简历库 =====
+let resumes=JSON.parse(localStorage.getItem('autumnRecruitResumes')||'[]');
+if(!Array.isArray(resumes))resumes=[];
+function saveResumes(){
+    try{localStorage.setItem('autumnRecruitResumes',JSON.stringify(resumes));}
+    catch(e){toast('存储空间不足！请删除部分简历或图片后再上传','error');return false;}
+    return true;
+}
+function fmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';}
+function renderResumes(){
+    const list=document.getElementById('resumeList'),empty=document.getElementById('resumeEmpty');
+    const tip=document.getElementById('storageTip');
+    if(!resumes.length){list.innerHTML='';empty.style.display='block';tip.style.display='none';return;}
+    empty.style.display='none';
+    list.innerHTML=resumes.map((r,i)=>`<div class="resume-item" style="animation-delay:${i*.04}s">
+        <div class="resume-icon">📄</div>
+        <div class="resume-meta">
+            <div class="resume-name">${esc(r.name)}</div>
+            <div class="resume-sub">${r.date} 上传 · ${fmtSize(r.size)}</div>
+        </div>
+        <div class="resume-actions">
+            <button class="action-btn edit" onclick="previewResume('${r.id}')">预览</button>
+            <button class="action-btn edit" onclick="downloadResume('${r.id}')" style="background:#F6FFED;color:#389E0D">下载</button>
+            <button class="action-btn delete" onclick="deleteResume('${r.id}')">删除</button>
+        </div>
+    </div>`).join('');
+    const total=resumes.reduce((s,r)=>s+r.size,0);
+    tip.style.display='block';
+    tip.textContent=`已用存储 ${fmtSize(total)}（浏览器上限约 5-10MB）。PDF 单份建议 1MB 以内；空间不足时可删除旧简历或投递记录里的图片。`;
+}
+function handleResumeUpload(e){
+    const file=e.target.files[0];e.target.value='';
+    if(!file)return;
+    if(file.type!=='application/pdf'&&!/\.pdf$/i.test(file.name)){toast('只支持 PDF 格式','error');return;}
+    if(file.size>2*1024*1024){toast('文件超过 2MB，可能导致存储空间不足','error');return;}
+    const name=file.name.replace(/\.pdf$/i,'');
+    showConfirm(`上传《${name}》？`,()=>{
+        const reader=new FileReader();
+        reader.onload=function(ev){
+            resumes.unshift({id:Date.now().toString(),name,date:new Date().toISOString().slice(0,10),size:file.size,data:ev.target.result});
+            if(saveResumes()){renderResumes();toast('简历已上传','success');}
+            else{resumes.shift();}
+        };
+        reader.readAsDataURL(file);
+    });
+}
+function previewResume(id){
+    const r=resumes.find(x=>x.id===id);if(!r)return;
+    fetch(r.data).then(b=>b.blob()).then(blob=>{
+        const url=URL.createObjectURL(blob);
+        window.open(url,'_blank');
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }).catch(()=>window.open(r.data,'_blank'));
+}
+function downloadResume(id){
+    const r=resumes.find(x=>x.id===id);if(!r)return;
+    const a=document.createElement('a');
+    a.href=r.data;a.download=r.name+'.pdf';a.click();
+    toast('已开始下载','success');
+}
+function deleteResume(id){
+    const r=resumes.find(x=>x.id===id);if(!r)return;
+    showConfirm(`删除简历《${r.name}》？`,()=>{
+        resumes=resumes.filter(x=>x.id!==id);
+        saveResumes();renderResumes();toast('已删除','success');
+    });
+}
+
+// ===== 简历信息（自定义板块） =====
+let resumeInfo=JSON.parse(localStorage.getItem('autumnRecruitResumeInfo')||'[]');
+if(!Array.isArray(resumeInfo))resumeInfo=[];
+function saveInfo(){
+    try{localStorage.setItem('autumnRecruitResumeInfo',JSON.stringify(resumeInfo));return true;}
+    catch(e){toast('存储空间不足','error');return false;}
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function renderInfoSections(){
+    const box=document.getElementById('infoSections'),empty=document.getElementById('infoEmpty');
+    if(!resumeInfo.length){box.innerHTML='';empty.style.display='block';return;}
+    empty.style.display='none';
+    box.innerHTML=resumeInfo.map((s,i)=>`<div class="info-section" style="animation-delay:${i*.04}s">
+        <div class="info-head">
+            <input class="info-title" value="${esc(s.title)}" placeholder="板块名称（如：项目经历）"
+                oninput="updateInfoTitle('${s.id}',this.value)">
+            <button class="action-btn delete" onclick="deleteInfoSection('${s.id}')">删除板块</button>
+        </div>
+        <textarea placeholder="在这里输入内容，修改后自动保存..."
+            oninput="updateInfoContent('${s.id}',this)">${esc(s.content)}</textarea>
+        <div class="info-foot"><span class="info-count">${(s.content||'').length} 字</span></div>
+    </div>`).join('');
+}
+function addInfoSection(){
+    resumeInfo.push({id:Date.now().toString(),title:'',content:''});
+    if(!saveInfo())return;
+    renderInfoSections();
+    const titles=document.querySelectorAll('.info-title');
+    if(titles.length)titles[titles.length-1].focus();
+    toast('板块已添加，给它起个名字吧','success');
+}
+function deleteInfoSection(id){
+    const s=resumeInfo.find(x=>x.id===id);
+    showConfirm(`删除板块「${s&&s.title||'未命名'}」？`,()=>{
+        resumeInfo=resumeInfo.filter(x=>x.id!==id);
+        saveInfo();renderInfoSections();toast('已删除','success');
+    });
+}
+let infoTimer=null;
+function updateInfoTitle(id,v){
+    const s=resumeInfo.find(x=>x.id===id);if(!s)return;
+    s.title=v;
+    clearTimeout(infoTimer);
+    infoTimer=setTimeout(saveInfo,400);
+}
+function updateInfoContent(id,el){
+    const s=resumeInfo.find(x=>x.id===id);if(!s)return;
+    const v=el.value;
+    s.content=v;
+    const sec=el.closest('.info-section');
+    if(sec){const c=sec.querySelector('.info-count');if(c)c.textContent=v.length+' 字';}
+    clearTimeout(infoTimer);
+    infoTimer=setTimeout(saveInfo,400);
+}
+
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 renderTable();
 </script>
