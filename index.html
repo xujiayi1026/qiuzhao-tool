@@ -971,24 +971,41 @@ const DEFAULT_RESUME_INFO=[
         {id:'s8',title:'学院',content:'设计与建筑学院',children:[]}
     ]},
     {id:'s9',title:'实习经历',content:'',children:[
-        {id:'s10',title:'实习公司',content:'',children:[]},
-        {id:'s11',title:'实习部门',content:'',children:[]},
-        {id:'s12',title:'实习职位',content:'',children:[]},
-        {id:'s13',title:'实习时间',content:'',children:[]},
-        {id:'s14',title:'实习描述',content:'',children:[]}
+        {id:'s9a',title:'第1段',content:'',children:[
+            {id:'s10',title:'实习公司',content:'',children:[]},
+            {id:'s11',title:'实习部门',content:'',children:[]},
+            {id:'s12',title:'实习职位',content:'',children:[]},
+            {id:'s13',title:'实习时间',content:'',children:[]},
+            {id:'s14',title:'实习描述',content:'',children:[]}
+        ]}
     ]},
     {id:'s15',title:'专业技能',content:'',ph:'可添加多条，每条一个子板块：类别 + 描述',children:[]},
     {id:'s16',title:'项目经历',content:'',children:[
-        {id:'s17',title:'项目名称',content:'',children:[]},
-        {id:'s18',title:'项目时间',content:'',children:[]},
-        {id:'s19',title:'担任角色',content:'',children:[]},
-        {id:'s20',title:'项目描述',content:'',children:[]}
+        {id:'s16a',title:'项目1',content:'',children:[
+            {id:'s17',title:'项目名称',content:'',children:[]},
+            {id:'s18',title:'项目时间',content:'',children:[]},
+            {id:'s19',title:'担任角色',content:'',children:[]},
+            {id:'s20',title:'项目描述',content:'',children:[]}
+        ]}
     ]},
     {id:'s21',title:'获奖荣誉',content:'',ph:'可添加多条，每条一个子板块：时间 + 描述',children:[]},
     {id:'s22',title:'学生工作',content:'',ph:'可添加多条，每条一个子板块：时间 + 职务 + 描述',children:[]},
     {id:'s23',title:'个人评价',content:'',children:[]},
     {id:'s24',title:'父母信息',content:'',children:[]}
 ];
+const ENTRY_TEMPLATES=[
+    {titles:['实习经历','实习经验','工作经验','工作经历'],name:'第$n段',btn:'＋添加一段',
+     fields:['实习公司','实习部门','实习职位','实习时间','实习描述']},
+    {titles:['项目经历','项目经验'],name:'项目$n',btn:'＋添加项目',
+     fields:['项目名称','项目时间','担任角色','项目描述']}
+];
+function getEntryTemplate(title){
+    const nt=normalizeTitle(title||'');
+    for(let i=0;i<ENTRY_TEMPLATES.length;i++){
+        if(ENTRY_TEMPLATES[i].titles.some(function(t){return normalizeTitle(t)===nt;}))return ENTRY_TEMPLATES[i];
+    }
+    return null;
+}
 let resumeInfo=JSON.parse(localStorage.getItem('autumnRecruitResumeInfo')||'null');
 if(resumeInfo===null||(Array.isArray(resumeInfo)&&resumeInfo.length===0)){
     resumeInfo=JSON.parse(JSON.stringify(DEFAULT_RESUME_INFO));
@@ -1000,6 +1017,20 @@ function saveInfo(){
     try{localStorage.setItem('autumnRecruitResumeInfo',JSON.stringify(resumeInfo));return true;}
     catch(e){toast('存储空间不足','error');return false;}
 }
+(function wrapFlatEntries(){
+    let wrapped=false;
+    resumeInfo.forEach(function(sec){
+        const tpl=getEntryTemplate(sec.title);
+        if(!tpl)return;
+        const kids=sec.children||[];
+        if(!kids.length)return;
+        const allLeaf=kids.every(function(k){return !k.children||!k.children.length;});
+        if(!allLeaf)return;
+        sec.children=[{id:nid(),title:tpl.name.replace('$n',1),content:'',children:kids}];
+        wrapped=true;
+    });
+    if(wrapped)saveInfo();
+})();
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function findNode(id,list){
     list=list||resumeInfo;
@@ -1045,6 +1076,8 @@ function renderSection(n,depth,i){
         <div class="info-foot"><span class="info-count">${(n.content||'').length} 字</span></div>`;
     }
     const noteBtn=(hasKids&&!showTa)?`<button class="action-btn edit" style="padding:3px 10px;font-size:11px" onclick="addSummary('${n.id}')">＋备注</button>`:'';
+    const tpl=getEntryTemplate(n.title);
+    const entryBtn=tpl?`<button class="action-btn edit" onclick="addEntry('${n.id}')" title="添加一整段，字段已预置好">${tpl.btn}</button>`:'';
     const grid=hasKids?`<div class="info-grid">${kids.map(function(k){
         return (k.children&&k.children.length)?renderSection(k,depth+1,0):renderCell(k,depth+1);
     }).join('')}</div>`:'';
@@ -1053,6 +1086,7 @@ function renderSection(n,depth,i){
             <input class="info-title" value="${esc(n.title)}" placeholder="${depth===0?'板块名称（如：项目经历）':'名称（如：项目名称 / 获得奖项）'}"
                 oninput="updateNodeTitle('${n.id}',this.value)">
             <button class="action-btn edit" onclick="addChildNode('${n.id}')" title="在此板块下添加子板块">＋子板块</button>
+            ${entryBtn}
             <button class="action-btn delete" onclick="deleteNode('${n.id}')">删除</button>
             ${noteBtn}
         </div>
@@ -1103,6 +1137,24 @@ function addChildNode(id){
     renderInfoSections();
     focusNodeTitle();
     toast('子板块已添加','success');
+}
+function addEntry(sectionId){
+    const sec=findNode(sectionId,resumeInfo);if(!sec)return;
+    const tpl=getEntryTemplate(sec.title);if(!tpl)return;
+    if(!sec.children)sec.children=[];
+    const used=sec.children.map(function(c){return c.title;});
+    let idx=sec.children.length+1;
+    let title=tpl.name.replace('$n',idx);
+    while(used.indexOf(title)>=0){idx++;title=tpl.name.replace('$n',idx);}
+    const entry={id:nid(),title:title,content:'',children:tpl.fields.map(function(f){
+        return{id:nid(),title:f,content:'',children:[]};
+    })};
+    sec.children.push(entry);
+    if(!saveInfo())return;
+    lastAddedId=entry.id;
+    renderInfoSections();
+    focusNodeTitle();
+    toast('已添加一段，填写各字段即可','success');
 }
 function focusNodeTitle(){
     if(lastAddedId){
@@ -1251,23 +1303,34 @@ const FIELD_PATTERNS=[
     {keys:['学院','院系'],re:/[\u4e00-\u9fa5]{2,10}学院/},
     {keys:['实习时间','项目时间','时间'],re:/20\d{2}[.\-/年]\d{1,2}(?:[.\-/月]\d{1,2}日?)?(?:\s*(?:-|–|~|至)\s*(?:20\d{2}[.\-/年])?\d{1,2}(?:[.\-/月]\d{1,2}日?)?)?/}
 ];
-function extractByLabel(title,text,longField){
-    if(!title||!text)return'';
+function extractByLabel(title,text,longField,from){
+    from=from||0;
+    if(!title||!text||from>=text.length)return null;
+    const src=from?text.slice(from):text;
     const e=String(title).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    const cm=new RegExp('(?:^|\\n)[\\t \\u3000]*'+e+'[\\t \\u3000]*[:：]','m').exec(text);
+    const cm=new RegExp('(?:^|\\n)[\\t \\u3000]*'+e+'[\\t \\u3000]*[:：]','m').exec(src);
     if(cm){
-        const after=text.slice(cm.index+cm[0].length);
+        const start=cm.index+cm[0].length;
         if(longField){
-            const nl=after.indexOf('\n');
-            const first=(nl<0?after:after.slice(0,nl)).trim();
-            const rest=(nl<0?'':after.slice(nl+1)).trim();
-            return[first,rest].filter(Boolean).join('\n');
+            const lines=src.slice(start).split('\n');
+            const out=[];
+            for(let i=0;i<lines.length;i++){
+                const L=lines[i];
+                if(i>0&&/^[^：\n]{1,14}[:：]\s*\S/.test(L)&&!new RegExp('^'+e+'[\\t \\u3000]*[:：]').test(L.trim()))break;
+                out.push(L);
+            }
+            const consumed=out.join('\n');
+            return{v:consumed.trim(),end:from+start+consumed.length};
         }
-        return(after.split('\n')[0]||'').trim();
+        const nl=src.indexOf('\n',start);
+        const lineEnd=nl<0?src.length:nl;
+        const v=src.slice(start,lineEnd).trim();
+        if(!v)return null;
+        return{v:v,end:from+lineEnd};
     }
-    const sm=new RegExp('(?:^|\\n)[\\t \\u3000]*'+e+'[\\t \\u3000]+(\\S+)','m').exec(text);
-    if(sm)return sm[1].trim();
-    return'';
+    const sm=new RegExp('(?:^|\\n)[\\t \\u3000]*'+e+'[\\t \\u3000]+(\\S+)','m').exec(src);
+    if(sm&&sm[1])return{v:sm[1].trim(),end:from+sm.index+sm[0].length};
+    return null;
 }
 function findSegContent(title,segMap){
     const bases=[title].concat(SECTION_ALIAS[title]||[]);
@@ -1277,34 +1340,53 @@ function findSegContent(title,segMap){
     }
     return'';
 }
-function fillLeaf(node,scope,fullText){
+function fillLeaf(node,scope,text,from){
+    from=from||0;
     const titles=[node.title].concat(FIELD_ALIAS[node.title]||[]);
-    const texts=scope?[scope,fullText]:[fullText];
     const long=/描述|评价|总结|说明|内容|经历|自述/.test(node.title||'');
-    for(let t=0;t<titles.length;t++){
-        for(let x=0;x<texts.length;x++){
-            const v=extractByLabel(titles[t],texts[x],long);
-            if(v){node.content=v;return true;}
+    if(scope){
+        for(let t=0;t<titles.length;t++){
+            const r=extractByLabel(titles[t],scope,long,from);
+            if(r&&r.v){node.content=r.v;return r.end;}
         }
+        for(let p=0;p<FIELD_PATTERNS.length;p++){
+            if(FIELD_PATTERNS[p].keys.indexOf(node.title)>=0){
+                const sub=scope.slice(from);
+                const m=FIELD_PATTERNS[p].re.exec(sub);
+                if(m&&m[0]){node.content=m[0];return from+m.index+m[0].length;}
+            }
+        }
+        if(long&&scope.slice(from).trim()){node.content=scope.slice(from).trim();return scope.length;}
+    }
+    for(let t=0;t<titles.length;t++){
+        const r=extractByLabel(titles[t],text,long,0);
+        if(r&&r.v){node.content=r.v;return from;}
     }
     for(let p=0;p<FIELD_PATTERNS.length;p++){
         if(FIELD_PATTERNS[p].keys.indexOf(node.title)>=0){
-            const src=scope||fullText;
-            const m=FIELD_PATTERNS[p].re.exec(src);
-            if(m&&m[0]){node.content=m[0];return true;}
+            const m=FIELD_PATTERNS[p].re.exec(text);
+            if(m&&m[0]){node.content=m[0];return from;}
         }
     }
-    if(long&&scope&&scope.trim()){node.content=scope.trim();return true;}
     return false;
 }
-function fillTreeLevel(list,scope,text,segMap){
-    let c=0;
+function fillTreeLevel(list,scope,text,segMap,from){
+    from=from||0;
+    let c=0,cursor=from;
     list.forEach(function(n){
         const kids=n.children||[];
-        if(kids.length)c+=fillTreeLevel(kids,findSegContent(n.title,segMap)||scope,text,segMap);
-        else if(fillLeaf(n,scope,text))c++;
+        if(kids.length){
+            const sub=findSegContent(n.title,segMap)||scope;
+            const shared=sub===scope;
+            const r=fillTreeLevel(kids,sub,text,segMap,shared?cursor:0);
+            c+=r.c;
+            if(shared&&r.end>cursor)cursor=r.end;
+        }else{
+            const e=fillLeaf(n,scope,text,from);
+            if(e!==false){c++;if(e>cursor)cursor=e;}
+        }
     });
-    return c;
+    return{c:c,end:cursor};
 }
 function parseResumePDF(e){
     const file=e.target.files[0];e.target.value='';
@@ -1336,10 +1418,10 @@ function parseResumePDF(e){
                 const kids=top.children||[];
                 if(!kids.length){
                     let v=scope?scope.trim():'';
-                    if(!v)v=extractByLabel(top.title,text,true);
-                    if(v){top.content=v.trim();filled++;}
+                    if(!v){const r=extractByLabel(top.title,text,true,0);if(r&&r.v)v=r.v.trim();}
+                    if(v){top.content=v;filled++;}
                 }else{
-                    filled+=fillTreeLevel(kids,scope,text,segMap);
+                    filled+=fillTreeLevel(kids,scope,text,segMap,0).c;
                 }
             });
             if(!filled){toast('未匹配到任何字段，请检查 PDF 结构与板块名称','error');return;}
