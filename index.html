@@ -283,6 +283,31 @@
         .info-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
         .info-count { font-size: 11px; color: var(--text3); }
 
+        /* 简历编辑态 */
+        .resume-name { transition: color .2s; }
+        .resume-note { font-size: 12px; color: var(--text2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .resume-note.note-empty { color: var(--text3); }
+        .resume-item.editing { border-color: var(--red); background: #FFFBFB; }
+        .inline-edit {
+            width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 14px; outline: none; font-family: inherit; margin-bottom: 6px;
+            transition: all .25s; background: #fff; color: var(--text1);
+        }
+        .inline-edit:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(194,12,12,.1); }
+        .inline-edit.note-input { font-size: 12px; }
+
+        /* 简历信息层级树 */
+        .info-children {
+            margin-top: 10px; padding-left: 14px; border-left: 2px solid var(--border-light);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .info-children .info-section { margin-bottom: 0; }
+        .info-section.d1 > .info-head > .info-title { color: #1890FF; }
+        .info-section.d2 > .info-head > .info-title { color: #389E0D; }
+        .info-section.d3 > .info-head > .info-title { color: #722ED1; }
+        .info-head { flex-wrap: wrap; }
+        .info-title { min-width: 140px; }
+
         /* ===== Toast ===== */
         .toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
@@ -393,11 +418,13 @@
             .panel-header .btn { width: 100%; padding: 12px; }
             .resume-item { flex-wrap: wrap; padding: 12px; gap: 10px; }
             .resume-meta { flex-basis: calc(100% - 58px); }
-            .resume-actions { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-            .resume-actions .action-btn { padding: 9px; font-size: 13px; border-radius: 8px; }
+            .resume-actions { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+            .resume-actions .action-btn { padding: 9px 4px; font-size: 13px; border-radius: 8px; }
             .info-section { padding: 12px; }
-            .info-title { font-size: 15px; }
-            .info-section textarea { min-height: 130px; font-size: 15px; }
+            .info-title { font-size: 15px; min-width: 100px; }
+            .info-head .action-btn { padding: 5px 9px; font-size: 11px; }
+            .info-section textarea { min-height: 100px; font-size: 15px; }
+            .info-children { padding-left: 10px; gap: 8px; }
         }
         @media (max-width: 380px) {
             .stats { grid-template-columns: repeat(2, 1fr); }
@@ -780,6 +807,8 @@ function switchView(view,el){
 // ===== 简历库 =====
 let resumes=JSON.parse(localStorage.getItem('autumnRecruitResumes')||'[]');
 if(!Array.isArray(resumes))resumes=[];
+resumes.forEach(r=>{if(r.note===undefined)r.note='';});
+let editingResumeId=null;
 function saveResumes(){
     try{localStorage.setItem('autumnRecruitResumes',JSON.stringify(resumes));}
     catch(e){toast('存储空间不足！请删除部分简历或图片后再上传','error');return false;}
@@ -791,21 +820,55 @@ function renderResumes(){
     const tip=document.getElementById('storageTip');
     if(!resumes.length){list.innerHTML='';empty.style.display='block';tip.style.display='none';return;}
     empty.style.display='none';
-    list.innerHTML=resumes.map((r,i)=>`<div class="resume-item" style="animation-delay:${i*.04}s">
-        <div class="resume-icon">📄</div>
-        <div class="resume-meta">
-            <div class="resume-name">${esc(r.name)}</div>
-            <div class="resume-sub">${r.date} 上传 · ${fmtSize(r.size)}</div>
-        </div>
-        <div class="resume-actions">
-            <button class="action-btn edit" onclick="previewResume('${r.id}')">预览</button>
-            <button class="action-btn edit" onclick="downloadResume('${r.id}')" style="background:#F6FFED;color:#389E0D">下载</button>
-            <button class="action-btn delete" onclick="deleteResume('${r.id}')">删除</button>
-        </div>
-    </div>`).join('');
+    list.innerHTML=resumes.map((r,i)=>{
+        const editing=editingResumeId===r.id;
+        if(editing){
+            return `<div class="resume-item editing" style="animation-delay:${i*.04}s">
+                <div class="resume-icon">✏️</div>
+                <div class="resume-meta">
+                    <input class="inline-edit" id="editResumeName" value="${esc(r.name)}" placeholder="简历名称（如：互联网版-产品经理）">
+                    <input class="inline-edit note-input" id="editResumeNote" value="${esc(r.note||'')}" placeholder="备注（如：投字节用这版 / 2026秋招通用）">
+                    <div class="resume-sub">${r.date} 上传 · ${fmtSize(r.size)}</div>
+                </div>
+                <div class="resume-actions">
+                    <button class="action-btn edit" onclick="saveResumeEdit('${r.id}')">保存</button>
+                    <button class="action-btn" style="background:#F5F5F5;color:#666" onclick="cancelResumeEdit()">取消</button>
+                </div>
+            </div>`;
+        }
+        return `<div class="resume-item" style="animation-delay:${i*.04}s">
+            <div class="resume-icon">📄</div>
+            <div class="resume-meta">
+                <div class="resume-name">${esc(r.name)}</div>
+                <div class="resume-note ${r.note?'':'note-empty'}">${r.note?'📌 '+esc(r.note):'未添加备注'}</div>
+                <div class="resume-sub">${r.date} 上传 · ${fmtSize(r.size)}</div>
+            </div>
+            <div class="resume-actions">
+                <button class="action-btn edit" onclick="editResume('${r.id}')">编辑</button>
+                <button class="action-btn edit" onclick="previewResume('${r.id}')">预览</button>
+                <button class="action-btn edit" style="background:#F6FFED;color:#389E0D" onclick="downloadResume('${r.id}')">下载</button>
+                <button class="action-btn delete" onclick="deleteResume('${r.id}')">删除</button>
+            </div>
+        </div>`;
+    }).join('');
     const total=resumes.reduce((s,r)=>s+r.size,0);
     tip.style.display='block';
     tip.textContent=`已用存储 ${fmtSize(total)}（浏览器上限约 5-10MB）。PDF 单份建议 1MB 以内；空间不足时可删除旧简历或投递记录里的图片。`;
+}
+function editResume(id){
+    editingResumeId=id;
+    renderResumes();
+    setTimeout(()=>{const n=document.getElementById('editResumeName');if(n){n.focus();n.select();}},50);
+}
+function cancelResumeEdit(){editingResumeId=null;renderResumes();}
+function saveResumeEdit(id){
+    const r=resumes.find(x=>x.id===id);if(!r)return;
+    const n=document.getElementById('editResumeName').value.trim();
+    const t=document.getElementById('editResumeNote').value.trim();
+    if(!n){toast('简历名称不能为空','error');return;}
+    r.name=n;r.note=t;
+    if(!saveResumes())return;
+    editingResumeId=null;renderResumes();toast('已保存','success');
 }
 function handleResumeUpload(e){
     const file=e.target.files[0];e.target.value='';
@@ -816,8 +879,12 @@ function handleResumeUpload(e){
     showConfirm(`上传《${name}》？`,()=>{
         const reader=new FileReader();
         reader.onload=function(ev){
-            resumes.unshift({id:Date.now().toString(),name,date:new Date().toISOString().slice(0,10),size:file.size,data:ev.target.result});
-            if(saveResumes()){renderResumes();toast('简历已上传','success');}
+            resumes.unshift({id:Date.now().toString(),name,date:new Date().toISOString().slice(0,10),size:file.size,note:'',data:ev.target.result});
+            if(saveResumes()){
+                editingResumeId=resumes[0].id;
+                renderResumes();
+                toast('已上传，可修改名称和添加备注','success');
+            }
             else{resumes.shift();}
         };
         reader.readAsDataURL(file);
@@ -841,61 +908,112 @@ function deleteResume(id){
     const r=resumes.find(x=>x.id===id);if(!r)return;
     showConfirm(`删除简历《${r.name}》？`,()=>{
         resumes=resumes.filter(x=>x.id!==id);
+        if(editingResumeId===id)editingResumeId=null;
         saveResumes();renderResumes();toast('已删除','success');
     });
 }
 
-// ===== 简历信息（自定义板块） =====
+// ===== 简历信息（层级板块） =====
+function nid(){return Date.now().toString()+Math.random().toString(36).slice(2,7);}
+function migrateNode(s){
+    return{id:s.id||nid(),title:s.title||'',content:s.content||'',children:Array.isArray(s.children)?s.children.map(migrateNode):[]};
+}
 let resumeInfo=JSON.parse(localStorage.getItem('autumnRecruitResumeInfo')||'[]');
 if(!Array.isArray(resumeInfo))resumeInfo=[];
+resumeInfo=resumeInfo.map(migrateNode);
 function saveInfo(){
     try{localStorage.setItem('autumnRecruitResumeInfo',JSON.stringify(resumeInfo));return true;}
     catch(e){toast('存储空间不足','error');return false;}
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function findNode(id,list){
+    list=list||resumeInfo;
+    for(const n of list){
+        if(n.id===id)return n;
+        const f=findNode(id,n.children||[]);
+        if(f)return f;
+    }
+    return null;
+}
+function findInList(id,list){
+    list=list||resumeInfo;
+    for(let i=0;i<list.length;i++){
+        if(list[i].id===id)return{node:list[i],list:list,index:i};
+        const r=findInList(id,list[i].children||[]);
+        if(r)return r;
+    }
+    return null;
+}
 function renderInfoSections(){
     const box=document.getElementById('infoSections'),empty=document.getElementById('infoEmpty');
     if(!resumeInfo.length){box.innerHTML='';empty.style.display='block';return;}
     empty.style.display='none';
-    box.innerHTML=resumeInfo.map((s,i)=>`<div class="info-section" style="animation-delay:${i*.04}s">
-        <div class="info-head">
-            <input class="info-title" value="${esc(s.title)}" placeholder="板块名称（如：项目经历）"
-                oninput="updateInfoTitle('${s.id}',this.value)">
-            <button class="action-btn delete" onclick="deleteInfoSection('${s.id}')">删除板块</button>
-        </div>
-        <textarea placeholder="在这里输入内容，修改后自动保存..."
-            oninput="updateInfoContent('${s.id}',this)">${esc(s.content)}</textarea>
-        <div class="info-foot"><span class="info-count">${(s.content||'').length} 字</span></div>
-    </div>`).join('');
+    box.innerHTML=renderNodes(resumeInfo,0);
 }
+function renderNodes(nodes,depth){
+    return nodes.map((n,i)=>{
+        const d=Math.min(depth,3);
+        const kids=n.children&&n.children.length;
+        return `<div class="info-section d${d}" data-nid="${n.id}" style="animation-delay:${Math.min(i*.04,.2)}s">
+            <div class="info-head">
+                <input class="info-title" value="${esc(n.title)}" placeholder="${depth===0?'板块名称（如：项目经历）':'名称（如：项目名称 / 获得奖项）'}"
+                    oninput="updateNodeTitle('${n.id}',this.value)">
+                <button class="action-btn edit" onclick="addChildNode('${n.id}')" title="在此板块下添加子板块">＋子板块</button>
+                <button class="action-btn delete" onclick="deleteNode('${n.id}')">删除</button>
+            </div>
+            <textarea placeholder="${kids?'（可选）给这一层写点总结...':'在这里输入内容，修改后自动保存...'}"
+                oninput="updateNodeContent('${n.id}',this)">${esc(n.content)}</textarea>
+            <div class="info-foot"><span class="info-count">${(n.content||'').length} 字</span></div>
+            ${kids?`<div class="info-children">${renderNodes(n.children,depth+1)}</div>`:''}
+        </div>`;
+    }).join('');
+}
+let lastAddedId=null;
 function addInfoSection(){
-    resumeInfo.push({id:Date.now().toString(),title:'',content:''});
+    const node={id:nid(),title:'',content:'',children:[]};
+    resumeInfo.push(node);
     if(!saveInfo())return;
+    lastAddedId=node.id;
     renderInfoSections();
-    const titles=document.querySelectorAll('.info-title');
-    if(titles.length)titles[titles.length-1].focus();
+    focusNodeTitle();
     toast('板块已添加，给它起个名字吧','success');
 }
-function deleteInfoSection(id){
-    const s=resumeInfo.find(x=>x.id===id);
-    showConfirm(`删除板块「${s&&s.title||'未命名'}」？`,()=>{
-        resumeInfo=resumeInfo.filter(x=>x.id!==id);
-        saveInfo();renderInfoSections();toast('已删除','success');
+function addChildNode(id){
+    const parent=findNode(id,resumeInfo);if(!parent)return;
+    if(!parent.children)parent.children=[];
+    const node={id:nid(),title:'',content:'',children:[]};
+    parent.children.push(node);
+    if(!saveInfo())return;
+    lastAddedId=node.id;
+    renderInfoSections();
+    focusNodeTitle();
+    toast('子板块已添加','success');
+}
+function focusNodeTitle(){
+    const el=lastAddedId&&document.querySelector(`[data-nid="${lastAddedId}"] .info-title`);
+    if(el){el.focus();}
+    lastAddedId=null;
+}
+function deleteNode(id){
+    const n=findNode(id,resumeInfo);if(!n)return;
+    const hasKids=n.children&&n.children.length;
+    showConfirm(`删除「${n.title||'未命名'}」${hasKids?'及其所有子板块':''}？`,()=>{
+        const f=findInList(id,resumeInfo);
+        if(f){f.list.splice(f.index,1);saveInfo();renderInfoSections();toast('已删除','success');}
     });
 }
 let infoTimer=null;
-function updateInfoTitle(id,v){
-    const s=resumeInfo.find(x=>x.id===id);if(!s)return;
-    s.title=v;
+function updateNodeTitle(id,v){
+    const n=findNode(id,resumeInfo);if(!n)return;
+    n.title=v;
     clearTimeout(infoTimer);
     infoTimer=setTimeout(saveInfo,400);
 }
-function updateInfoContent(id,el){
-    const s=resumeInfo.find(x=>x.id===id);if(!s)return;
-    const v=el.value;
-    s.content=v;
+function updateNodeContent(id,el){
+    const n=findNode(id,resumeInfo);if(!n)return;
+    n.content=el.value;
     const sec=el.closest('.info-section');
-    if(sec){const c=sec.querySelector('.info-count');if(c)c.textContent=v.length+' 字';}
+    if(sec){const c=sec.querySelector('.info-foot .info-count');if(c)c.textContent=el.value.length+' 字';}
     clearTimeout(infoTimer);
     infoTimer=setTimeout(saveInfo,400);
 }
