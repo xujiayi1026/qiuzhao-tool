@@ -922,9 +922,45 @@ function deleteResume(id){
 // ===== 简历信息（层级板块） =====
 function nid(){return Date.now().toString()+Math.random().toString(36).slice(2,7);}
 function migrateNode(s){
-    return{id:s.id||nid(),title:s.title||'',content:s.content||'',children:Array.isArray(s.children)?s.children.map(migrateNode):[]};
+    const n={id:s.id||nid(),title:s.title||'',content:s.content||'',children:Array.isArray(s.children)?s.children.map(migrateNode):[]};
+    if(s.ph)n.ph=s.ph;
+    return n;
 }
-let resumeInfo=JSON.parse(localStorage.getItem('autumnRecruitResumeInfo')||'[]');
+const DEFAULT_RESUME_INFO=[
+    {id:'s1',title:'基本信息',content:'',children:[
+        {id:'s2',title:'姓名',content:'',children:[]},
+        {id:'s3',title:'手机号码',content:'',children:[]},
+        {id:'s4',title:'政治面貌',content:'',children:[]},
+        {id:'s5',title:'邮箱',content:'',children:[]}
+    ]},
+    {id:'s6',title:'教育背景',content:'',children:[
+        {id:'s7',title:'毕业院校',content:'浙江工业大学',children:[]},
+        {id:'s8',title:'学院',content:'设计与建筑学院',children:[]}
+    ]},
+    {id:'s9',title:'实习经历',content:'',children:[
+        {id:'s10',title:'实习公司',content:'',children:[]},
+        {id:'s11',title:'实习部门',content:'',children:[]},
+        {id:'s12',title:'实习职位',content:'',children:[]},
+        {id:'s13',title:'实习时间',content:'',children:[]},
+        {id:'s14',title:'实习描述',content:'',children:[]}
+    ]},
+    {id:'s15',title:'专业技能',content:'',ph:'可添加多条，每条一个子板块：类别 + 描述',children:[]},
+    {id:'s16',title:'项目经历',content:'',children:[
+        {id:'s17',title:'项目名称',content:'',children:[]},
+        {id:'s18',title:'项目时间',content:'',children:[]},
+        {id:'s19',title:'担任角色',content:'',children:[]},
+        {id:'s20',title:'项目描述',content:'',children:[]}
+    ]},
+    {id:'s21',title:'获奖荣誉',content:'',ph:'可添加多条，每条一个子板块：时间 + 描述',children:[]},
+    {id:'s22',title:'学生工作',content:'',ph:'可添加多条，每条一个子板块：时间 + 职务 + 描述',children:[]},
+    {id:'s23',title:'个人评价',content:'',children:[]},
+    {id:'s24',title:'父母信息',content:'',children:[]}
+];
+let resumeInfo=JSON.parse(localStorage.getItem('autumnRecruitResumeInfo')||'null');
+if(resumeInfo===null||(Array.isArray(resumeInfo)&&resumeInfo.length===0)){
+    resumeInfo=JSON.parse(JSON.stringify(DEFAULT_RESUME_INFO));
+    try{localStorage.setItem('autumnRecruitResumeInfo',JSON.stringify(resumeInfo));}catch(e){}
+}
 if(!Array.isArray(resumeInfo))resumeInfo=[];
 resumeInfo=resumeInfo.map(migrateNode);
 function saveInfo(){
@@ -967,7 +1003,7 @@ function renderNodes(nodes,depth){
                 <button class="action-btn edit" onclick="addChildNode('${n.id}')" title="在此板块下添加子板块">＋子板块</button>
                 <button class="action-btn delete" onclick="deleteNode('${n.id}')">删除</button>
             </div>
-            <textarea placeholder="${kids?'（可选）给这一层写点总结...':'在这里输入内容，修改后自动保存...'}"
+            <textarea placeholder="${esc(n.ph||(kids?'（可选）给这一层写点总结...':'在这里输入内容，修改后自动保存...'))}"
                 oninput="updateNodeContent('${n.id}',this)">${esc(n.content)}</textarea>
             <div class="info-foot"><span class="info-count">${(n.content||'').length} 字</span></div>
             ${kids?`<div class="info-children">${renderNodes(n.children,depth+1)}</div>`:''}
