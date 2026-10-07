@@ -153,6 +153,18 @@
         .action-btn.edit:hover { background: #096DD9; color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(9,109,217,.3); }
         .action-btn.delete { background: #FFF1F0; color: #CF1322; }
         .action-btn.delete:hover { background: #CF1322; color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(207,19,34,.3); }
+        .action-btn.lock { background: #F5F5F5; color: #999; }
+        .action-btn.lock:hover { background: #E8E8E8; color: #666; }
+        .action-btn.lock.on { background: #FFF7E6; color: #D48806; font-weight: 600; }
+        .action-btn.lock.on:hover { background: #FAAD14; color: #fff; box-shadow: 0 2px 8px rgba(250,173,20,.35); }
+        .info-section.locked-sec { border-color: #FFD591; background: linear-gradient(0deg, rgba(255,247,230,.5), rgba(255,247,230,.5)), var(--card); }
+        .info-section.locked-sec:hover { border-color: #FAAD14; box-shadow: 0 4px 14px rgba(250,173,20,.12); }
+        .info-section.locked-sec .info-head { border-left: 3px solid #FAAD14; padding-left: 9px; }
+        .info-cell.locked-sec { border-color: #FFD591; background: #FFFCF5; }
+        .info-section.locked-sec input:disabled,
+        .info-section.locked-sec textarea:disabled,
+        .info-cell.locked-sec input:disabled,
+        .info-cell.locked-sec textarea:disabled { opacity: .75; -webkit-text-fill-color: #555; cursor: not-allowed; }
 
         /* ===== Modal ===== */
         .modal-overlay {
@@ -996,6 +1008,7 @@ function migrateNode(s){
     const n={id:s.id||nid(),title:s.title||'',content:s.content||'',children:Array.isArray(s.children)?s.children.map(migrateNode):[]};
     if(s.ph&&!/子板块/.test(s.ph))n.ph=s.ph;
     if(s.showSummary)n.showSummary=true;
+    if(s.locked)n.locked=true;
     return n;
 }
 const DEFAULT_RESUME_INFO=[
@@ -1183,7 +1196,7 @@ function renderInfoSections(){
     const box=document.getElementById('infoSections'),empty=document.getElementById('infoEmpty');
     if(!resumeInfo.length){box.innerHTML='';empty.style.display='block';return;}
     empty.style.display='none';
-    box.innerHTML=resumeInfo.map(function(n,i){return renderSection(n,0,i);}).join('');
+    box.innerHTML=resumeInfo.map(function(n,i){return renderSection(n,0,i,false);}).join('');
     box.querySelectorAll('textarea.summary').forEach(autoGrow);
 }
 function autoGrow(t){t.style.height='auto';t.style.height=Math.max(36,t.scrollHeight)+'px';}
@@ -1191,30 +1204,34 @@ function isLongField(n){
     if(/描述|评价|总结|说明|介绍|自述|经历|职责|内容|备注|成果|规划|反馈|反馈|自荐/.test(n.title||''))return true;
     return(n.content||'').length>40;
 }
-function renderSection(n,depth,i){
+function renderSection(n,depth,i,parLocked){
     const d=Math.min(depth,3);
+    const lk=parLocked||!!n.locked;
     const kids=n.children||[];
     const hasKids=kids.length>0;
     const mainContent=!hasKids;
     const showTa=mainContent||!!(n.content||n.ph||n.showSummary);
+    const dis=lk?'disabled':'';
     let ta='';
     if(showTa){
         const cls=mainContent?'':' summary';
-        ta=`<textarea class="${cls}" placeholder="${esc(n.ph||(mainContent?'在这里输入内容，修改后自动保存...':'（可选）补充说明...'))}"
+        ta=`<textarea class="${cls}" ${dis} placeholder="${esc(n.ph||(mainContent?'在这里输入内容，修改后自动保存...':'（可选）补充说明...'))}"
             oninput="updateNodeContent('${n.id}',this)">${esc(n.content)}</textarea>
         <div class="info-foot"><span class="info-count">${(n.content||'').length} 字</span></div>`;
     }
-    const noteBtn=(hasKids&&!showTa)?`<button class="action-btn edit" style="padding:3px 10px;font-size:11px" onclick="addSummary('${n.id}')">＋备注</button>`:'';
+    const noteBtn=(!lk&&hasKids&&!showTa)?`<button class="action-btn edit" style="padding:3px 10px;font-size:11px" onclick="addSummary('${n.id}')">＋备注</button>`:'';
     const tpl=getEntryTemplate(n.title);
-    const entryBtn=tpl?`<button class="action-btn edit" onclick="addEntry('${n.id}')" title="添加一整段，字段已预置好">${tpl.btn}</button>`:'';
+    const entryBtn=(tpl&&!lk)?`<button class="action-btn edit" onclick="addEntry('${n.id}')" title="添加一整段，字段已预置好">${tpl.btn}</button>`:'';
+    const lockBtn=parLocked?'':`<button class="action-btn lock ${n.locked?'on':''}" onclick="toggleLock('${n.id}')" title="${n.locked?'已锁定：解析/导入将跳过，点击解锁':'锁定此板块，解析/导入不修改'}">${n.locked?'🔒 已锁定':'🔓 解锁'}</button>`;
     const grid=hasKids?`<div class="info-grid">${kids.map(function(k){
-        return (k.children&&k.children.length)?renderSection(k,depth+1,0):renderCell(k,depth+1);
+        return (k.children&&k.children.length)?renderSection(k,depth+1,0,lk):renderCell(k,lk);
     }).join('')}</div>`:'';
-    return `<div class="info-section d${d}" data-nid="${n.id}" style="animation-delay:${Math.min((i||0)*.04,.2)}s">
+    return `<div class="info-section d${d}${n.locked?' locked-sec':''}" data-nid="${n.id}" style="animation-delay:${Math.min((i||0)*.04,.2)}s">
         <div class="info-head">
-            <input class="info-title" value="${esc(n.title)}" placeholder="${depth===0?'板块名称（如：项目经历）':'名称（如：项目名称 / 获得奖项）'}"
+            <input class="info-title" value="${esc(n.title)}" ${dis} placeholder="${depth===0?'板块名称（如：项目经历）':'名称（如：项目名称 / 获得奖项）'}"
                 oninput="updateNodeTitle('${n.id}',this.value)">
             ${entryBtn}
+            ${lockBtn}
             <button class="action-btn delete" onclick="deleteNode('${n.id}')">删除</button>
             ${noteBtn}
         </div>
@@ -1222,16 +1239,18 @@ function renderSection(n,depth,i){
         ${grid}
     </div>`;
 }
-function renderCell(n){
+function renderCell(n,parLocked){
+    const lk=parLocked||!!n.locked;
+    const dis=lk?'disabled':'';
     const long=isLongField(n);
     const w=long
-        ?`<textarea class="cell-input" rows="3" placeholder="填写内容..." oninput="updateNodeContent('${n.id}',this)">${esc(n.content)}</textarea>`
-        :`<input class="cell-input" value="${esc(n.content)}" placeholder="填写..." oninput="updateNodeContent('${n.id}',this)">`;
-    return `<div class="info-cell ${long?'wide':''}" data-nid="${n.id}">
+        ?`<textarea class="cell-input" rows="3" ${dis} placeholder="填写内容..." oninput="updateNodeContent('${n.id}',this)">${esc(n.content)}</textarea>`
+        :`<input class="cell-input" value="${esc(n.content)}" ${dis} placeholder="填写..." oninput="updateNodeContent('${n.id}',this)">`;
+    return `<div class="info-cell ${long?'wide':''}${lk?' locked-sec':''}" data-nid="${n.id}">
         <div class="cell-head">
-            <input class="cell-label" value="${esc(n.title)}" placeholder="名称" oninput="updateNodeTitle('${n.id}',this.value)">
+            <input class="cell-label" value="${esc(n.title)}" ${dis} placeholder="名称" oninput="updateNodeTitle('${n.id}',this.value)">
             <div class="cell-ops">
-                <button class="cell-btn" title="删除此栏" onclick="deleteNode('${n.id}')">✕</button>
+                ${lk?'':'<button class="cell-btn" title="删除此栏" onclick="deleteNode(\''+n.id+'\')">✕</button>'}
             </div>
         </div>
         ${w}
@@ -1243,6 +1262,24 @@ function addSummary(id){
     saveInfo();renderInfoSections();
     const el=document.querySelector(`[data-nid="${id}"] textarea`);
     if(el)el.focus();
+}
+function toggleLock(id){
+    const n=findNode(id,resumeInfo);if(!n)return;
+    n.locked=!n.locked;
+    saveInfo();
+    renderInfoSections();
+    toast(n.locked?'已锁定：解析和导入将跳过此板块':'已解锁，可正常更新','success');
+}
+function collectLockSet(){
+    const set={};
+    (function walk(list,par){
+        list.forEach(function(n){
+            const l=par||!!n.locked;
+            if(l)set[n.id]=1;
+            if(n.children&&n.children.length)walk(n.children,l);
+        });
+    })(resumeInfo,false);
+    return set;
 }
 let lastAddedId=null;
 function addInfoSection(){
@@ -1376,21 +1413,24 @@ function getOrCreateImportSection(){
 function importPairs(text){
     const pairs=parseLabelPairs(text,resumeInfo.map(function(s){return s.title;}));
     if(!pairs.length)return{filled:0,created:0};
+    const lockSet=collectLockSet();
     const used={};
     let filled=0,created=0;
     pairs.forEach(function(p){
         if(!p.value||!p.value.trim())return;
         const cands=findTitleMatches(p.label,p.section||null);
+        const unlocked=cands.filter(function(c){return !lockSet[c.id];});
         let target=null;
-        for(let i=0;i<cands.length;i++){if(!used[cands[i].id]){target=cands[i];break;}}
+        for(let i=0;i<unlocked.length;i++){if(!used[unlocked[i].id]){target=unlocked[i];break;}}
         if(target){
             target.content=p.value;
             used[target.id]=1;
             filled++;
             return;
         }
+        if(cands.length&&!unlocked.length)return;
         const tplHit=findEntryTemplateForLabel(p.label);
-        if(tplHit){
+        if(tplHit&&!lockSet[tplHit.sec.id]){
             const entry={id:nid(),title:nextEntryTitle(tplHit.sec,tplHit.tpl),content:'',
                 children:tplHit.tpl.fields.map(function(f){return{id:nid(),title:f,content:'',children:[]};})};
             tplHit.sec.children.push(entry);
@@ -1401,7 +1441,7 @@ function importPairs(text){
             filled++;
             return;
         }
-        const host=p.section||getOrCreateImportSection();
+        const host=(p.section&&!lockSet[p.section.id])?p.section:getOrCreateImportSection();
         host.children.push({id:nid(),title:p.label,content:p.value,children:[]});
         created++;
     });
@@ -1470,7 +1510,9 @@ function applyParsedText(text,allowNoSegs){
         segMap[k]=segMap[k]?segMap[k]+'\n'+s.content:s.content;
     });
     let filled=0;
+    const lockSet=collectLockSet();
     resumeInfo.forEach(function(top){
+        if(lockSet[top.id])return;
         const scope=findSegContent(top.title,segMap);
         const kids=top.children||[];
         if(!kids.length){
@@ -1478,7 +1520,7 @@ function applyParsedText(text,allowNoSegs){
             if(!v){const r=extractByLabel(top.title,text,true,0);if(r&&r.v)v=r.v.trim();}
             if(v){top.content=v;filled++;}
         }else{
-            filled+=fillTreeLevel(kids,scope,text,segMap,0).c;
+            filled+=fillTreeLevel(kids,scope,text,segMap,0,lockSet).c;
         }
     });
     return filled;
@@ -1664,15 +1706,16 @@ function fillLeaf(node,scope,text,from){
     }
     return false;
 }
-function fillTreeLevel(list,scope,text,segMap,from){
+function fillTreeLevel(list,scope,text,segMap,from,lockSet){
     from=from||0;
     let c=0,cursor=from;
     list.forEach(function(n){
+        if(lockSet&&lockSet[n.id])return;
         const kids=n.children||[];
         if(kids.length){
             const sub=findSegContent(n.title,segMap)||scope;
             const shared=sub===scope;
-            const r=fillTreeLevel(kids,sub,text,segMap,shared?cursor:0);
+            const r=fillTreeLevel(kids,sub,text,segMap,shared?cursor:0,lockSet);
             c+=r.c;
             if(shared&&r.end>cursor)cursor=r.end;
         }else{
