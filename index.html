@@ -648,7 +648,7 @@
         <p style="font-weight:600;margin-bottom:6px">从网页导入</p>
         <p style="font-size:13px;color:#666;line-height:1.7;text-align:left;margin-bottom:10px">
             1. 打开已填写好的网页简历（如银行官网），<b>全选</b> Ctrl+A → <b>复制</b> Ctrl+C<br>
-            2. 粘贴到下方，按「字段名：内容」智能匹配填入当前版本，<b>不会新建板块</b>
+            2. 按「字段名：内容」匹配填入，<b>名称有容错</b>（专业 ≈ 专业名称），<b>未匹配的自动新建字段</b>
         </p>
         <textarea id="importText" style="width:100%;min-height:170px;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;line-height:1.6;resize:vertical;font-family:inherit" placeholder="在此粘贴网页内容..."></textarea>
         <div class="confirm-actions">
@@ -994,7 +994,7 @@ function deleteResume(id){
 function nid(){return Date.now().toString()+Math.random().toString(36).slice(2,7);}
 function migrateNode(s){
     const n={id:s.id||nid(),title:s.title||'',content:s.content||'',children:Array.isArray(s.children)?s.children.map(migrateNode):[]};
-    if(s.ph)n.ph=s.ph;
+    if(s.ph&&!/子板块/.test(s.ph))n.ph=s.ph;
     if(s.showSummary)n.showSummary=true;
     return n;
 }
@@ -1018,7 +1018,7 @@ const DEFAULT_RESUME_INFO=[
             {id:'s14',title:'实习描述',content:'',children:[]}
         ]}
     ]},
-    {id:'s15',title:'专业技能',content:'',ph:'可添加多条，每条一个子板块：类别 + 描述',children:[]},
+    {id:'s15',title:'专业技能',content:'',ph:'点「＋添加技能」分条填写，或粘贴导入',children:[]},
     {id:'s16',title:'项目经历',content:'',children:[
         {id:'s16a',title:'项目1',content:'',children:[
             {id:'s17',title:'项目名称',content:'',children:[]},
@@ -1027,8 +1027,8 @@ const DEFAULT_RESUME_INFO=[
             {id:'s20',title:'项目描述',content:'',children:[]}
         ]}
     ]},
-    {id:'s21',title:'获奖荣誉',content:'',ph:'可添加多条，每条一个子板块：时间 + 描述',children:[]},
-    {id:'s22',title:'学生工作',content:'',ph:'可添加多条，每条一个子板块：时间 + 职务 + 描述',children:[]},
+    {id:'s21',title:'获奖荣誉',content:'',ph:'点「＋添加奖项」分条填写，或粘贴导入',children:[]},
+    {id:'s22',title:'学生工作',content:'',ph:'点「＋添加经历」分条填写，或粘贴导入',children:[]},
     {id:'s23',title:'个人评价',content:'',children:[]},
     {id:'s24',title:'父母信息',content:'',children:[]}
 ];
@@ -1120,7 +1120,9 @@ const ENTRY_TEMPLATES=[
     {titles:['获奖荣誉','获奖情况','荣誉奖项','所获荣誉'],name:'奖项$n',btn:'＋添加奖项',
      fields:['获奖时间','奖项名称','奖项级别']},
     {titles:['家庭成员','社会关系','家庭情况','家属情况'],name:'成员$n',btn:'＋添加成员',
-     fields:['姓名','与本人关系','工作单位','职务']}
+     fields:['姓名','与本人关系','工作单位','职务']},
+    {titles:['专业技能','技能特长','技能清单'],name:'技能$n',btn:'＋添加技能',
+     fields:['技能类别','技能描述']}
 ];
 function getEntryTemplate(title){
     const nt=normalizeTitle(title||'');
@@ -1212,7 +1214,6 @@ function renderSection(n,depth,i){
         <div class="info-head">
             <input class="info-title" value="${esc(n.title)}" placeholder="${depth===0?'板块名称（如：项目经历）':'名称（如：项目名称 / 获得奖项）'}"
                 oninput="updateNodeTitle('${n.id}',this.value)">
-            <button class="action-btn edit" onclick="addChildNode('${n.id}')" title="在此板块下添加子板块">＋子板块</button>
             ${entryBtn}
             <button class="action-btn delete" onclick="deleteNode('${n.id}')">删除</button>
             ${noteBtn}
@@ -1230,7 +1231,6 @@ function renderCell(n){
         <div class="cell-head">
             <input class="cell-label" value="${esc(n.title)}" placeholder="名称" oninput="updateNodeTitle('${n.id}',this.value)">
             <div class="cell-ops">
-                <button class="cell-btn" title="添加子板块" onclick="addChildNode('${n.id}')">＋</button>
                 <button class="cell-btn" title="删除此栏" onclick="deleteNode('${n.id}')">✕</button>
             </div>
         </div>
@@ -1254,26 +1254,18 @@ function addInfoSection(){
     focusNodeTitle();
     toast('板块已添加，给它起个名字吧','success');
 }
-function addChildNode(id){
-    const parent=findNode(id,resumeInfo);if(!parent)return;
-    if(!parent.children)parent.children=[];
-    const node={id:nid(),title:'',content:'',children:[]};
-    parent.children.push(node);
-    if(!saveInfo())return;
-    lastAddedId=node.id;
-    renderInfoSections();
-    focusNodeTitle();
-    toast('子板块已添加','success');
+function nextEntryTitle(sec,tpl){
+    const used=sec.children.map(function(c){return c.title;});
+    let idx=sec.children.length+1;
+    let t=tpl.name.replace('$n',idx);
+    while(used.indexOf(t)>=0){idx++;t=tpl.name.replace('$n',idx);}
+    return t;
 }
 function addEntry(sectionId){
     const sec=findNode(sectionId,resumeInfo);if(!sec)return;
     const tpl=getEntryTemplate(sec.title);if(!tpl)return;
     if(!sec.children)sec.children=[];
-    const used=sec.children.map(function(c){return c.title;});
-    let idx=sec.children.length+1;
-    let title=tpl.name.replace('$n',idx);
-    while(used.indexOf(title)>=0){idx++;title=tpl.name.replace('$n',idx);}
-    const entry={id:nid(),title:title,content:'',children:tpl.fields.map(function(f){
+    const entry={id:nid(),title:nextEntryTitle(sec,tpl),content:'',children:tpl.fields.map(function(f){
         return{id:nid(),title:f,content:'',children:[]};
     })};
     sec.children.push(entry);
@@ -1299,6 +1291,122 @@ function switchInfoVersion(v){
     renderInfoSections();
     toast(v==='bank'?'已切换到银行版（独立存储）':'已切换到企业版（独立存储）','success');
 }
+// ===== 网页粘贴导入：名称容错匹配 + 未匹配自动新建 =====
+function fuzzyTitle(a,b){
+    const x=normalizeTitle(a),y=normalizeTitle(b);
+    if(!x||!y)return false;
+    if(x===y)return true;
+    const al=FIELD_ALIAS[a]||[];
+    if(al.some(function(t){return normalizeTitle(t)===y;}))return true;
+    const short=x.length<=y.length?x:y,long=x.length<=y.length?y:x;
+    return short.length>=2&&long.indexOf(short)>=0;
+}
+function visitMatches(list,label,ex,fz,seen){
+    list.forEach(function(n){
+        if(!seen[n.id]){
+            seen[n.id]=1;
+            if(n.title){
+                if(normalizeTitle(n.title)===normalizeTitle(label))ex.push(n);
+                else if(fuzzyTitle(n.title,label))fz.push(n);
+            }
+        }
+        if(n.children&&n.children.length)visitMatches(n.children,label,ex,fz,seen);
+    });
+}
+function findTitleMatches(label,secNode){
+    const ex=[],fz=[],seen={};
+    if(secNode&&secNode.children)visitMatches(secNode.children,label,ex,fz,seen);
+    visitMatches(resumeInfo,label,ex,fz,seen);
+    return ex.concat(fz);
+}
+function parseLabelPairs(text,topTitles){
+    const out=[];
+    const lines=String(text||'').split(/\r?\n/);
+    let curSection=null,cur=null;
+    function matchHeading(l){
+        let hit=resumeInfo.find(function(sec){return fuzzyTitle(sec.title,l);});
+        if(!hit)hit=resumeInfo.find(function(sec){
+            return (SECTION_ALIAS[sec.title]||[]).some(function(a){return fuzzyTitle(a,l);});
+        });
+        return hit||null;
+    }
+    lines.forEach(function(raw){
+        const l=raw.trim();
+        if(!l)return;
+        if(l.length<=16){
+            const h=matchHeading(l);
+            if(h){
+                if(cur){out.push(cur);cur=null;}
+                curSection=h;
+                return;
+            }
+        }
+        let m=l.match(/^([^：:\t]{1,24})[:：]\s*(.*)$/);
+        if(!m&&l.indexOf('\t')>=0){
+            const parts=l.split(/\t+/).map(function(x){return x.trim();}).filter(function(x){return x;});
+            if(parts.length>=2&&parts.length%2===0&&parts.every(function(x,i){return i%2===0?x.length<=16:true;})){
+                if(cur){out.push(cur);cur=null;}
+                for(let i=0;i<parts.length;i+=2)out.push({label:parts[i],value:parts[i+1],section:curSection});
+                return;
+            }
+        }
+        if(m&&m[1].trim()){
+            if(cur)out.push(cur);
+            cur={label:m[1].trim(),value:m[2]||'',section:curSection};
+            return;
+        }
+        if(cur)cur.value+='\n'+l;
+    });
+    if(cur)out.push(cur);
+    return out;
+}
+function findEntryTemplateForLabel(label){
+    for(let i=0;i<resumeInfo.length;i++){
+        const sec=resumeInfo[i],tpl=getEntryTemplate(sec.title);
+        if(!tpl)continue;
+        if(tpl.fields.some(function(f){return fuzzyTitle(f,label);}))return{sec:sec,tpl:tpl};
+    }
+    return null;
+}
+function getOrCreateImportSection(){
+    let s=resumeInfo.find(function(x){return x.title==='导入新增';});
+    if(!s){s={id:nid(),title:'导入新增',content:'',children:[]};resumeInfo.push(s);}
+    return s;
+}
+function importPairs(text){
+    const pairs=parseLabelPairs(text,resumeInfo.map(function(s){return s.title;}));
+    if(!pairs.length)return{filled:0,created:0};
+    const used={};
+    let filled=0,created=0;
+    pairs.forEach(function(p){
+        if(!p.value||!p.value.trim())return;
+        const cands=findTitleMatches(p.label,p.section||null);
+        let target=null;
+        for(let i=0;i<cands.length;i++){if(!used[cands[i].id]){target=cands[i];break;}}
+        if(target){
+            target.content=p.value;
+            used[target.id]=1;
+            filled++;
+            return;
+        }
+        const tplHit=findEntryTemplateForLabel(p.label);
+        if(tplHit){
+            const entry={id:nid(),title:nextEntryTitle(tplHit.sec,tplHit.tpl),content:'',
+                children:tplHit.tpl.fields.map(function(f){return{id:nid(),title:f,content:'',children:[]};})};
+            tplHit.sec.children.push(entry);
+            created++;
+            const mine=entry.children.find(function(k){return fuzzyTitle(k.title,p.label);})||entry.children[0];
+            mine.content=p.value;
+            used[mine.id]=1;
+            filled++;
+            return;
+        }
+        const host=p.section||getOrCreateImportSection();
+        host.children.push({id:nid(),title:p.label,content:p.value,children:[]});
+        created++;
+    });
+    return{filled:filled,created:created};
+}
 function openImportModal(){
     document.getElementById('importText').value='';
     document.getElementById('importOverlay').style.display='flex';
@@ -1309,14 +1417,14 @@ function closeImportModal(){
 function doImport(){
     const t=document.getElementById('importText').value;
     if(!t.trim()){toast('请先粘贴网页内容','error');return;}
-    showConfirm('将按现有板块/字段智能匹配填入（覆盖已识别字段，不新建板块），继续？',function(){
-        const filled=applyParsedText(t,true);
-        if(!filled){toast('未匹配到任何字段，换个复制范围再试试','error');return;}
+    showConfirm('按「字段名：内容」匹配填入（名称有容错，如「专业」≈「专业名称」），未匹配的会自动新建字段，继续？',function(){
+        const r=importPairs(t);
+        if(!r.filled&&!r.created){toast('未识别出「字段：内容」格式的内容','error');return;}
         clearTimeout(infoTimer);
         if(!saveInfo())return;
         renderInfoSections();
         closeImportModal();
-        toast('导入完成：填入 '+filled+' 个字段','success');
+        toast('导入完成：填入 '+r.filled+' 个字段'+(r.created?('，新建 '+r.created+' 个'):''),'success');
     });
 }
 function focusNodeTitle(){
@@ -1330,7 +1438,7 @@ function focusNodeTitle(){
 function deleteNode(id){
     const n=findNode(id,resumeInfo);if(!n)return;
     const hasKids=n.children&&n.children.length;
-    showConfirm(`删除「${n.title||'未命名'}」${hasKids?'及其所有子板块':''}？`,()=>{
+    showConfirm(`删除「${n.title||'未命名'}」${hasKids?'及其所有内容':''}？`,()=>{
         const f=findInList(id,resumeInfo);
         if(f){f.list.splice(f.index,1);saveInfo();renderInfoSections();toast('已删除','success');}
     });
