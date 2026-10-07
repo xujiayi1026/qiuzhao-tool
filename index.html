@@ -231,6 +231,20 @@
         .nav-tab:hover { background: rgba(255,255,255,.22); transform: translateY(-2px); }
         .nav-tab.active { background: var(--bg); color: var(--red); font-weight: 600; }
 
+        /* ===== 企业版/银行版切换 ===== */
+        .version-switch { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .vsw-btn {
+            padding: 7px 18px; border: 1.5px solid var(--border); background: var(--bg); color: #666;
+            border-radius: 999px; cursor: pointer; font-size: 13.5px; font-family: inherit; font-weight: 500;
+            transition: all .2s;
+        }
+        .vsw-btn:hover { border-color: var(--red-light); color: var(--red); }
+        .vsw-btn.active {
+            background: linear-gradient(135deg, #C20C0C, #E60026); border-color: transparent;
+            color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(230,0,38,.28);
+        }
+        .vsw-hint { font-size: 12px; color: #999; margin-left: 4px; }
+
         /* ===== Panel（简历库/简历信息） ===== */
         .panel {
             background: var(--card); border: 1px solid var(--border); border-radius: 12px;
@@ -442,6 +456,8 @@
 
             /* 标签页 + 新面板 */
             .nav-tabs { margin-top: 14px; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+            .vsw-hint { display: none; }
+            .vsw-btn { padding: 6px 14px; font-size: 13px; }
             .nav-tabs::-webkit-scrollbar { display: none; }
             .nav-tab { flex: 1; padding: 10px 8px; font-size: 13px; white-space: nowrap; text-align: center; }
             .panel { padding: 14px 12px; border-radius: 10px; }
@@ -545,12 +561,18 @@
     <div id="viewResumeInfo" style="display:none">
         <div class="panel">
             <div class="panel-header">
-                <div><h2>📝 简历信息</h2><p class="panel-sub">自定义板块，把简历信息都存这里；也可上传 PDF 自动解析填充</p></div>
+                <div><h2>📝 简历信息</h2><p class="panel-sub">自定义板块，把简历信息都存这里；支持 PDF 解析和网页粘贴导入</p></div>
                 <div class="header-btns">
+                    <button class="btn btn-cancel" onclick="openImportModal()">📋 网页导入</button>
                     <button class="btn btn-cancel" onclick="document.getElementById('pdfParseInput').click()">🔍 解析简历</button>
                     <button class="btn btn-primary" onclick="addInfoSection()">+ 添加板块</button>
                     <input type="file" id="pdfParseInput" accept=".pdf,application/pdf" style="display:none" onchange="parseResumePDF(event)">
                 </div>
+            </div>
+            <div class="version-switch">
+                <button class="vsw-btn active" id="vswCompany" onclick="switchInfoVersion('company')">🏢 企业版</button>
+                <button class="vsw-btn" id="vswBank" onclick="switchInfoVersion('bank')">🏦 银行版</button>
+                <span class="vsw-hint">两版独立存储，切换不覆盖</span>
             </div>
             <div id="infoSections"></div>
             <div class="empty" id="infoEmpty" style="display:none"><div class="empty-icon">✏️</div><p>还没有板块，点击「添加板块」开始整理你的简历信息</p></div>
@@ -615,6 +637,23 @@
         <div class="confirm-actions">
             <button class="btn btn-cancel" onclick="closeConfirm()">取消</button>
             <button class="btn btn-primary" id="confirmOk" style="background:linear-gradient(135deg,#F5222D,#CF1322);">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- Import Dialog -->
+<div class="confirm-overlay" id="importOverlay" style="display:none">
+    <div class="confirm-box" style="max-width:600px;width:94%">
+        <div class="confirm-icon">📋</div>
+        <p style="font-weight:600;margin-bottom:6px">从网页导入</p>
+        <p style="font-size:13px;color:#666;line-height:1.7;text-align:left;margin-bottom:10px">
+            1. 打开已填写好的网页简历（如银行官网），<b>全选</b> Ctrl+A → <b>复制</b> Ctrl+C<br>
+            2. 粘贴到下方，按「字段名：内容」智能匹配填入当前版本，<b>不会新建板块</b>
+        </p>
+        <textarea id="importText" style="width:100%;min-height:170px;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;line-height:1.6;resize:vertical;font-family:inherit" placeholder="在此粘贴网页内容..."></textarea>
+        <div class="confirm-actions">
+            <button class="btn btn-cancel" onclick="closeImportModal()">取消</button>
+            <button class="btn btn-primary" onclick="doImport()">解析导入</button>
         </div>
     </div>
 </div>
@@ -993,11 +1032,95 @@ const DEFAULT_RESUME_INFO=[
     {id:'s23',title:'个人评价',content:'',children:[]},
     {id:'s24',title:'父母信息',content:'',children:[]}
 ];
+const DEFAULT_RESUME_INFO_BANK=[
+    {id:'b1',title:'基本信息',content:'',children:[
+        {id:'b2',title:'姓名',content:'',children:[]},
+        {id:'b3',title:'性别',content:'',children:[]},
+        {id:'b4',title:'出生日期',content:'',children:[]},
+        {id:'b5',title:'手机号码',content:'',children:[]},
+        {id:'b6',title:'邮箱',content:'',children:[]},
+        {id:'b7',title:'政治面貌',content:'',children:[]},
+        {id:'b8',title:'民族',content:'',children:[]},
+        {id:'b9',title:'籍贯/生源地',content:'',children:[]},
+        {id:'b10',title:'婚姻状况',content:'',children:[]},
+        {id:'b11',title:'身份证号',content:'',children:[]},
+        {id:'b12',title:'户籍所在地',content:'',children:[]},
+        {id:'b13',title:'现居住地',content:'',children:[]}
+    ]},
+    {id:'b14',title:'教育背景',content:'',children:[
+        {id:'b15',title:'学历1',content:'',children:[
+            {id:'b16',title:'毕业院校',content:'',children:[]},
+            {id:'b17',title:'专业',content:'',children:[]},
+            {id:'b18',title:'学历学位',content:'',children:[]},
+            {id:'b19',title:'起止时间',content:'',children:[]}
+        ]}
+    ]},
+    {id:'b20',title:'外语水平',content:'',children:[
+        {id:'b21',title:'CET-4',content:'',children:[]},
+        {id:'b22',title:'CET-6',content:'',children:[]},
+        {id:'b23',title:'雅思/托福',content:'',children:[]},
+        {id:'b24',title:'其他语种',content:'',children:[]}
+    ]},
+    {id:'b25',title:'专业资格证书',content:'',children:[
+        {id:'b26',title:'证书1',content:'',children:[
+            {id:'b27',title:'证书名称',content:'',children:[]},
+            {id:'b28',title:'获取时间',content:'',children:[]}
+        ]}
+    ]},
+    {id:'b29',title:'实习经历',content:'',children:[
+        {id:'b30',title:'第1段',content:'',children:[
+            {id:'b31',title:'实习公司',content:'',children:[]},
+            {id:'b32',title:'实习部门',content:'',children:[]},
+            {id:'b33',title:'实习职位',content:'',children:[]},
+            {id:'b34',title:'实习时间',content:'',children:[]},
+            {id:'b35',title:'实习描述',content:'',children:[]}
+        ]}
+    ]},
+    {id:'b36',title:'校园经历',content:'',children:[
+        {id:'b37',title:'经历1',content:'',children:[
+            {id:'b38',title:'学校或组织',content:'',children:[]},
+            {id:'b39',title:'职务',content:'',children:[]},
+            {id:'b40',title:'起止时间',content:'',children:[]},
+            {id:'b41',title:'经历描述',content:'',children:[]}
+        ]}
+    ]},
+    {id:'b42',title:'获奖荣誉',content:'',children:[
+        {id:'b43',title:'奖项1',content:'',children:[
+            {id:'b44',title:'获奖时间',content:'',children:[]},
+            {id:'b45',title:'奖项名称',content:'',children:[]},
+            {id:'b46',title:'奖项级别',content:'',children:[]}
+        ]}
+    ]},
+    {id:'b47',title:'家庭成员',content:'',children:[
+        {id:'b48',title:'成员1',content:'',children:[
+            {id:'b49',title:'姓名',content:'',children:[]},
+            {id:'b50',title:'与本人关系',content:'',children:[]},
+            {id:'b51',title:'工作单位',content:'',children:[]},
+            {id:'b52',title:'职务',content:'',children:[]}
+        ]}
+    ]},
+    {id:'b53',title:'报考信息',content:'',children:[
+        {id:'b54',title:'报考岗位',content:'',children:[]},
+        {id:'b55',title:'期望城市',content:'',children:[]},
+        {id:'b56',title:'是否服从调剂',content:'',children:[]}
+    ]},
+    {id:'b57',title:'自我评价',content:'',children:[]}
+];
 const ENTRY_TEMPLATES=[
     {titles:['实习经历','实习经验','工作经验','工作经历'],name:'第$n段',btn:'＋添加一段',
      fields:['实习公司','实习部门','实习职位','实习时间','实习描述']},
     {titles:['项目经历','项目经验'],name:'项目$n',btn:'＋添加项目',
-     fields:['项目名称','项目时间','担任角色','项目描述']}
+     fields:['项目名称','项目时间','担任角色','项目描述']},
+    {titles:['教育背景','教育经历','学习经历'],name:'学历$n',btn:'＋添加学历',
+     fields:['毕业院校','专业','学历学位','起止时间']},
+    {titles:['专业资格证书','资格证书','证书资质','职业证书'],name:'证书$n',btn:'＋添加证书',
+     fields:['证书名称','获取时间']},
+    {titles:['学生工作','校园经历','社会实践','学生干部经历'],name:'经历$n',btn:'＋添加经历',
+     fields:['学校或组织','职务','起止时间','经历描述']},
+    {titles:['获奖荣誉','获奖情况','荣誉奖项','所获荣誉'],name:'奖项$n',btn:'＋添加奖项',
+     fields:['获奖时间','奖项名称','奖项级别']},
+    {titles:['家庭成员','社会关系','家庭情况','家属情况'],name:'成员$n',btn:'＋添加成员',
+     fields:['姓名','与本人关系','工作单位','职务']}
 ];
 function getEntryTemplate(title){
     const nt=normalizeTitle(title||'');
@@ -1006,18 +1129,14 @@ function getEntryTemplate(title){
     }
     return null;
 }
-let resumeInfo=JSON.parse(localStorage.getItem('autumnRecruitResumeInfo')||'null');
-if(resumeInfo===null||(Array.isArray(resumeInfo)&&resumeInfo.length===0)){
-    resumeInfo=JSON.parse(JSON.stringify(DEFAULT_RESUME_INFO));
-    try{localStorage.setItem('autumnRecruitResumeInfo',JSON.stringify(resumeInfo));}catch(e){}
-}
-if(!Array.isArray(resumeInfo))resumeInfo=[];
-resumeInfo=resumeInfo.map(migrateNode);
+let infoVersion=(localStorage.getItem('autumnRecruitInfoVersion')==='bank')?'bank':'company';
+function infoKey(v){return (v||infoVersion)==='bank'?'autumnRecruitResumeInfoBank':'autumnRecruitResumeInfo';}
+let resumeInfo=[];
 function saveInfo(){
-    try{localStorage.setItem('autumnRecruitResumeInfo',JSON.stringify(resumeInfo));return true;}
+    try{localStorage.setItem(infoKey(),JSON.stringify(resumeInfo));return true;}
     catch(e){toast('存储空间不足','error');return false;}
 }
-(function wrapFlatEntries(){
+function wrapFlatEntries(){
     let wrapped=false;
     resumeInfo.forEach(function(sec){
         const tpl=getEntryTemplate(sec.title);
@@ -1030,7 +1149,15 @@ function saveInfo(){
         wrapped=true;
     });
     if(wrapped)saveInfo();
-})();
+}
+function loadVersion(v){
+    let data=JSON.parse(localStorage.getItem(infoKey(v))||'null');
+    const def=(v==='bank')?DEFAULT_RESUME_INFO_BANK:DEFAULT_RESUME_INFO;
+    if(data===null||(Array.isArray(data)&&data.length===0))data=JSON.parse(JSON.stringify(def));
+    resumeInfo=Array.isArray(data)?data.map(migrateNode):[];
+    wrapFlatEntries();
+}
+loadVersion(infoVersion);
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function findNode(id,list){
     list=list||resumeInfo;
@@ -1156,6 +1283,42 @@ function addEntry(sectionId){
     focusNodeTitle();
     toast('已添加一段，填写各字段即可','success');
 }
+function updateVersionSwitch(){
+    const a=document.getElementById('vswCompany'),b=document.getElementById('vswBank');
+    if(a)a.classList.toggle('active',infoVersion==='company');
+    if(b)b.classList.toggle('active',infoVersion==='bank');
+}
+function switchInfoVersion(v){
+    if(v===infoVersion){updateVersionSwitch();return;}
+    clearTimeout(infoTimer);
+    saveInfo();
+    infoVersion=v;
+    try{localStorage.setItem('autumnRecruitInfoVersion',v);}catch(e){}
+    loadVersion(v);
+    updateVersionSwitch();
+    renderInfoSections();
+    toast(v==='bank'?'已切换到银行版（独立存储）':'已切换到企业版（独立存储）','success');
+}
+function openImportModal(){
+    document.getElementById('importText').value='';
+    document.getElementById('importOverlay').style.display='flex';
+}
+function closeImportModal(){
+    document.getElementById('importOverlay').style.display='none';
+}
+function doImport(){
+    const t=document.getElementById('importText').value;
+    if(!t.trim()){toast('请先粘贴网页内容','error');return;}
+    showConfirm('将按现有板块/字段智能匹配填入（覆盖已识别字段，不新建板块），继续？',function(){
+        const filled=applyParsedText(t,true);
+        if(!filled){toast('未匹配到任何字段，换个复制范围再试试','error');return;}
+        clearTimeout(infoTimer);
+        if(!saveInfo())return;
+        renderInfoSections();
+        closeImportModal();
+        toast('导入完成：填入 '+filled+' 个字段','success');
+    });
+}
 function focusNodeTitle(){
     if(lastAddedId){
         const el=document.querySelector(`[data-nid="${lastAddedId}"] .info-title`)||
@@ -1190,6 +1353,28 @@ function updateNodeContent(id,el){
 }
 
 // ===== 简历 PDF 解析 =====
+function applyParsedText(text,allowNoSegs){
+    const segs=segmentResumeText(text);
+    if(!segs.length&&!allowNoSegs)return-1;
+    const segMap={};
+    segs.forEach(function(s){
+        const k=normalizeTitle(s.title);
+        segMap[k]=segMap[k]?segMap[k]+'\n'+s.content:s.content;
+    });
+    let filled=0;
+    resumeInfo.forEach(function(top){
+        const scope=findSegContent(top.title,segMap);
+        const kids=top.children||[];
+        if(!kids.length){
+            let v=scope?scope.trim():'';
+            if(!v){const r=extractByLabel(top.title,text,true,0);if(r&&r.v)v=r.v.trim();}
+            if(v){top.content=v;filled++;}
+        }else{
+            filled+=fillTreeLevel(kids,scope,text,segMap,0).c;
+        }
+    });
+    return filled;
+}
 const RESUME_HEADING_KEYWORDS=['个人信息','基本资料','教育背景','教育经历','学习经历','校园经历','学生工作','社会实践','工作经验','工作经历','实习经历','实习经验','项目经历','项目经验','科研经历','论文专利','竞赛经历','志愿经历','专业技能','技能特长','技能清单','语言能力','自我评价','自我介绍','获奖情况','荣誉证书','所获荣誉','荣誉奖项','证书资质','职业证书','兴趣爱好'];
 let _pdfjsLoad=null;
 function loadPdfJs(){
@@ -1359,13 +1544,14 @@ function fillLeaf(node,scope,text,from){
         if(long&&scope.slice(from).trim()){node.content=scope.slice(from).trim();return scope.length;}
     }
     for(let t=0;t<titles.length;t++){
-        const r=extractByLabel(titles[t],text,long,0);
-        if(r&&r.v){node.content=r.v;return from;}
+        const r=extractByLabel(titles[t],text,long,scope?0:from);
+        if(r&&r.v){node.content=r.v;return scope?from:r.end;}
     }
     for(let p=0;p<FIELD_PATTERNS.length;p++){
         if(FIELD_PATTERNS[p].keys.indexOf(node.title)>=0){
-            const m=FIELD_PATTERNS[p].re.exec(text);
-            if(m&&m[0]){node.content=m[0];return from;}
+            const src=scope?text:text.slice(from);
+            const m=FIELD_PATTERNS[p].re.exec(src);
+            if(m&&m[0]){node.content=m[0];return scope?from:from+m.index+m[0].length;}
         }
     }
     return false;
@@ -1405,25 +1591,8 @@ function parseResumePDF(e){
                 text+=pdfPageToText(tc)+'\n';
             }
             if(!text.trim()){toast('未提取到文字，可能是扫描件 PDF','error');return;}
-            const segs=segmentResumeText(text);
-            if(!segs.length){toast('未识别出板块标题（如：教育背景），请检查 PDF 是否为文字版','error');return;}
-            const segMap={};
-            segs.forEach(function(s){
-                const k=normalizeTitle(s.title);
-                segMap[k]=segMap[k]?segMap[k]+'\n'+s.content:s.content;
-            });
-            let filled=0;
-            resumeInfo.forEach(function(top){
-                const scope=findSegContent(top.title,segMap);
-                const kids=top.children||[];
-                if(!kids.length){
-                    let v=scope?scope.trim():'';
-                    if(!v){const r=extractByLabel(top.title,text,true,0);if(r&&r.v)v=r.v.trim();}
-                    if(v){top.content=v;filled++;}
-                }else{
-                    filled+=fillTreeLevel(kids,scope,text,segMap,0).c;
-                }
-            });
+            const filled=applyParsedText(text,false);
+            if(filled<0){toast('未识别出板块标题（如：教育背景），请检查 PDF 是否为文字版','error');return;}
             if(!filled){toast('未匹配到任何字段，请检查 PDF 结构与板块名称','error');return;}
             if(!saveInfo())return;
             renderInfoSections();
@@ -1436,6 +1605,7 @@ function parseResumePDF(e){
 }
 
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+updateVersionSwitch();
 renderTable();
 </script>
 </body>
