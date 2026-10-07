@@ -157,14 +157,18 @@
         .action-btn.lock:hover { background: #E8E8E8; color: #666; }
         .action-btn.lock.on { background: #FFF7E6; color: #D48806; font-weight: 600; }
         .action-btn.lock.on:hover { background: #FAAD14; color: #fff; box-shadow: 0 2px 8px rgba(250,173,20,.35); }
+        .action-btn.copy { background: #F6FFED; color: #389E0D; }
+        .action-btn.copy:hover { background: #389E0D; color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(56,158,13,.3); }
+        .cell-btn.cp { width: auto; padding: 0 7px; color: #389E0D; font-size: 12px; }
+        .cell-btn.cp:hover { background: #F6FFED; color: #389E0D; }
         .info-section.locked-sec { border-color: #FFD591; background: linear-gradient(0deg, rgba(255,247,230,.5), rgba(255,247,230,.5)), var(--card); }
         .info-section.locked-sec:hover { border-color: #FAAD14; box-shadow: 0 4px 14px rgba(250,173,20,.12); }
         .info-section.locked-sec .info-head { border-left: 3px solid #FAAD14; padding-left: 9px; }
         .info-cell.locked-sec { border-color: #FFD591; background: #FFFCF5; }
-        .info-section.locked-sec input:disabled,
-        .info-section.locked-sec textarea:disabled,
-        .info-cell.locked-sec input:disabled,
-        .info-cell.locked-sec textarea:disabled { opacity: .75; -webkit-text-fill-color: #555; cursor: not-allowed; }
+        .info-section.locked-sec input[readonly],
+        .info-section.locked-sec textarea[readonly],
+        .info-cell.locked-sec input[readonly],
+        .info-cell.locked-sec textarea[readonly] { opacity: .85; -webkit-text-fill-color: #444; cursor: text; }
 
         /* ===== Modal ===== */
         .modal-overlay {
@@ -851,10 +855,31 @@ function confirmClear(){
 function shareApp(){
     const url=location.href;
     if(navigator.share){
-        navigator.share({title:'秋招投递工具台',text:'我一直在用这个管理秋招投递，你也可以试试',url}).catch(()=>{});
+        navigator.share({title:'秋招投递工具台',text:'我一直在用管理秋招投递，你也可以试试',url}).catch(()=>{});
     }else if(navigator.clipboard&&navigator.clipboard.writeText){
         navigator.clipboard.writeText(url).then(()=>toast('链接已复制，发给朋友即可（对方看到的是自己的数据）','success')).catch(()=>prompt('复制这个链接分享：',url));
     }else{prompt('复制这个链接分享：',url);}
+}
+function legacyCopy(txt,done){
+    const ta=document.createElement('textarea');
+    ta.value=txt;
+    ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ta.setSelectionRange(0,txt.length);}catch(e){}
+    let ok=false;
+    try{ok=document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);
+    if(ok)done();else toast('复制失败，请手动长按选择复制','error');
+}
+function copyText(txt,msg){
+    txt=String(txt==null?'':txt);
+    if(!txt.trim()){toast('没有内容可复制','error');return;}
+    const done=function(){toast(msg||'已复制到剪贴板','success');};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(done).catch(function(){legacyCopy(txt,done);});
+    }else{legacyCopy(txt,done);}
 }
 function exportData(){
     const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
@@ -1211,18 +1236,20 @@ function renderSection(n,depth,i,parLocked){
     const hasKids=kids.length>0;
     const mainContent=!hasKids;
     const showTa=mainContent||!!(n.content||n.ph||n.showSummary);
-    const dis=lk?'disabled':'';
+    const dis=lk?'readonly':'';
     let ta='';
     if(showTa){
         const cls=mainContent?'':' summary';
+        const footCopy=mainContent?`<button class="cell-btn cp" title="复制内容" onclick="copyNodeValue('${n.id}')">📋 复制</button>`:'';
         ta=`<textarea class="${cls}" ${dis} placeholder="${esc(n.ph||(mainContent?'在这里输入内容，修改后自动保存...':'（可选）补充说明...'))}"
             oninput="updateNodeContent('${n.id}',this)">${esc(n.content)}</textarea>
-        <div class="info-foot"><span class="info-count">${(n.content||'').length} 字</span></div>`;
+        <div class="info-foot"><span class="info-count">${(n.content||'').length} 字</span>${footCopy}</div>`;
     }
     const noteBtn=(!lk&&hasKids&&!showTa)?`<button class="action-btn edit" style="padding:3px 10px;font-size:11px" onclick="addSummary('${n.id}')">＋备注</button>`:'';
     const tpl=getEntryTemplate(n.title);
     const entryBtn=(tpl&&!lk)?`<button class="action-btn edit" onclick="addEntry('${n.id}')" title="添加一整段，字段已预置好">${tpl.btn}</button>`:'';
     const lockBtn=parLocked?'':`<button class="action-btn lock ${n.locked?'on':''}" onclick="toggleLock('${n.id}')" title="${n.locked?'已锁定：解析/导入将跳过，点击解锁':'锁定此板块，解析/导入不修改'}">${n.locked?'🔒 已锁定':'🔓 解锁'}</button>`;
+    const copyBtn=`<button class="action-btn copy" onclick="copySectionText('${n.id}')" title="一键复制此板块全部内容">📋</button>`;
     const grid=hasKids?`<div class="info-grid">${kids.map(function(k){
         return (k.children&&k.children.length)?renderSection(k,depth+1,0,lk):renderCell(k,lk);
     }).join('')}</div>`:'';
@@ -1232,6 +1259,7 @@ function renderSection(n,depth,i,parLocked){
                 oninput="updateNodeTitle('${n.id}',this.value)">
             ${entryBtn}
             ${lockBtn}
+            ${copyBtn}
             <button class="action-btn delete" onclick="deleteNode('${n.id}')">删除</button>
             ${noteBtn}
         </div>
@@ -1241,7 +1269,7 @@ function renderSection(n,depth,i,parLocked){
 }
 function renderCell(n,parLocked){
     const lk=parLocked||!!n.locked;
-    const dis=lk?'disabled':'';
+    const dis=lk?'readonly':'';
     const long=isLongField(n);
     const w=long
         ?`<textarea class="cell-input" rows="3" ${dis} placeholder="填写内容..." oninput="updateNodeContent('${n.id}',this)">${esc(n.content)}</textarea>`
@@ -1250,6 +1278,7 @@ function renderCell(n,parLocked){
         <div class="cell-head">
             <input class="cell-label" value="${esc(n.title)}" ${dis} placeholder="名称" oninput="updateNodeTitle('${n.id}',this.value)">
             <div class="cell-ops">
+                <button class="cell-btn cp" title="复制内容" onclick="copyNodeValue('${n.id}')">📋</button>
                 ${lk?'':'<button class="cell-btn" title="删除此栏" onclick="deleteNode(\''+n.id+'\')">✕</button>'}
             </div>
         </div>
@@ -1269,6 +1298,21 @@ function toggleLock(id){
     saveInfo();
     renderInfoSections();
     toast(n.locked?'已锁定：解析和导入将跳过此板块':'已解锁，可正常更新','success');
+}
+function copyNodeValue(id){
+    const n=findNode(id,resumeInfo);if(!n)return;
+    copyText(n.content,'已复制该字段内容');
+}
+function copySectionText(id){
+    const n=findNode(id,resumeInfo);if(!n)return;
+    const lines=[];
+    (function walk(node){
+        const c=(node.content||'').trim();
+        if(c)lines.push(node.title?(node.title+'：'+c):c);
+        (node.children||[]).forEach(walk);
+    })(n);
+    if(!lines.length){toast('该板块还没有内容','error');return;}
+    copyText(lines.join('\n'),'已复制「'+(n.title||'该板块')+'」全部内容');
 }
 function collectLockSet(){
     const set={};
