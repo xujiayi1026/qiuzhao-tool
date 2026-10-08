@@ -573,8 +573,9 @@
     <div id="viewResumeInfo" style="display:none">
         <div class="panel">
             <div class="panel-header">
-                <div><h2>📝 简历信息</h2><p class="panel-sub">自定义板块，把简历信息都存这里；支持 PDF 解析和网页粘贴导入</p></div>
+                <div><h2>📝 简历信息</h2><p class="panel-sub">自定义板块，把简历信息都存这里；支持 PDF 解析、网页粘贴导入和官网一键填充</p></div>
                 <div class="header-btns">
+                    <button class="btn btn-cancel" onclick="openFillModal()">🚀 一键填充</button>
                     <button class="btn btn-cancel" onclick="openImportModal()">📋 网页导入</button>
                     <button class="btn btn-cancel" onclick="document.getElementById('pdfParseInput').click()">🔍 解析简历</button>
                     <button class="btn btn-primary" onclick="addInfoSection()">+ 添加板块</button>
@@ -666,6 +667,27 @@
         <div class="confirm-actions">
             <button class="btn btn-cancel" onclick="closeImportModal()">取消</button>
             <button class="btn btn-primary" onclick="doImport()">解析导入</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fill Bookmarklet Dialog -->
+<div class="confirm-overlay" id="bmOverlay" style="display:none;z-index:1500">
+    <div class="confirm-box" style="max-width:620px;width:94%">
+        <div class="confirm-icon">🚀</div>
+        <p style="font-weight:600;margin-bottom:6px">官网一键填充书签</p>
+        <p style="font-size:13px;color:#666;line-height:1.8;text-align:left;margin-bottom:10px">
+            1. 用<b>当前版本</b>（企业版/银行版）的字段生成；改了简历信息后要<b>重新生成</b><br>
+            2. 电脑：<b>把下方 🚀 按钮拖到书签栏</b>（书签栏没显示按 Ctrl+Shift+B）→ 登录招聘官网、打开表单 → 点书签，自动填入<br>
+            3. 分步表单每翻一页点一次；<b>密码框自动跳过</b>；填完请核对一遍<br>
+            4. 手机：复制脚本 → 浏览器新建书签 → 粘贴到网址栏
+        </p>
+        <div style="text-align:center;margin:8px 0 14px">
+            <a id="bmLink" href="javascript:void(0)" style="display:inline-block;background:#C20C0C;color:#fff;padding:12px 26px;border-radius:8px;font-weight:600;text-decoration:none;cursor:grab;user-select:none;box-shadow:0 3px 10px rgba(194,12,12,.3)">🚀 拖到书签栏</a>
+        </div>
+        <div class="confirm-actions">
+            <button class="btn btn-cancel" onclick="closeFillModal()">关闭</button>
+            <button class="btn btn-primary" onclick="copyFillScript()">复制脚本（手动建书签）</button>
         </div>
     </div>
 </div>
@@ -1488,6 +1510,77 @@ function openImportModal(){
 }
 function closeImportModal(){
     document.getElementById('importOverlay').style.display='none';
+}
+function flattenInfoDict(){
+    const dict={};
+    (function walk(nodes){
+        (nodes||[]).forEach(function(n){
+            if(n.children&&n.children.length)walk(n.children);
+            else if(n.title&&(n.content||'').trim()&&!dict[n.title])dict[n.title]=n.content.trim();
+        });
+    })(resumeInfo);
+    return dict;
+}
+function bookmarkletBody(){
+    return `function n(s){return String(s||'').replace(/[\\s:：()（）【】\\[\\]<>《》＊·、,，.。\\-—_/|！!？?；;~～"'“”‘’]+/g,'').toLowerCase()}
+var AL={'姓名':['姓名','名字','申请人姓名'],'手机':['手机','手机号','手机号码','移动电话','联系电话','电话','联系方式','手机号码','mobile','phone'],'邮箱':['邮箱','电子邮箱','电子邮件','邮箱地址','email','mail'],'学校':['学校','毕业院校','院校名称','就读学校','大学','college','school'],'专业':['专业','专业名称','所学专业'],'学历':['学历','学历层次','最高学历','学历学位'],'性别':['性别','gender','sex'],'政治面貌':['政治面貌','政治'],'出生日期':['出生日期','出生年月','生日','出生年月日'],'年龄':['年龄'],'籍贯':['籍贯','户籍','户口所在地'],'身份证号':['身份证号','身份证号码','身份证'],'民族':['民族'],'生源地':['生源地','生源省份','生源'],'应聘岗位':['应聘岗位','报考岗位','报考职位','求职岗位','应聘职位','意向岗位','申请岗位','岗位','职位'],'报考单位':['报考单位','报考机构','报名单位','分支机构'],'期望城市':['期望城市','期望工作地点','工作地点','志愿城市'],'期望薪资':['期望薪资','薪资要求','期望薪酬','月薪','薪资'],'入职时间':['入职时间','到岗时间','到岗日期','可到岗时间'],'英语水平':['英语水平','外语水平','英语','外语'],'现居住地':['现居住地','居住地','现住址','通讯地址','联系地址','地址'],'专业资格证书':['证书','资格证书','资格证'],'自我评价':['自我评价','个人评价','自我介绍']};
+function fk(label){var L=n(label);if(!L)return '';var best='',bs=0;
+for(var k in D){var kn=n(k);if(!kn)continue;var s=0;
+if(L===kn)s=100;else{var al=AL[k]||[];for(var i=0;i<al.length;i++){if(L===n(al[i])){s=90;break}}
+if(!s&&kn.length>=2&&L.indexOf(kn)>=0)s=70;else if(!s&&L.length>=2&&kn.indexOf(L)>=0)s=60}
+if(s>bs){bs=s;best=k}}
+return bs>=60?best:''}
+function lb(el){var t='';
+try{if(el.labels&&el.labels.length)t=el.labels[0].innerText||el.labels[0].textContent||''}catch(e){}
+if(!t)t=el.getAttribute('aria-label')||'';
+if(!t)t=el.getAttribute('placeholder')||'';
+if(!t){try{var q=el.id?document.querySelector('label[for="'+el.id.replace(/"/g,'')+'"]'):null;if(q)t=q.innerText||q.textContent||''}catch(e){}}
+if(!t){var p=el.previousElementSibling;if(p)t=(p.innerText||p.textContent||'').trim().slice(0,50)}
+if(!t){try{var td=el.closest('td');var pv=td&&td.previousElementSibling;if(pv)t=(pv.innerText||pv.textContent||'').trim().slice(0,50)}catch(e){}}
+if(!t)t=el.name||el.id||'';
+return t}
+function sv(el,v){try{var proto=el.tagName==='TEXTAREA'?window.HTMLTextAreaElement.prototype:window.HTMLInputElement.prototype;var st=Object.getOwnPropertyDescriptor(proto,'value').set;st.call(el,v)}catch(e){try{el.value=v}catch(e2){}}
+try{el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}catch(e){}}
+function dv(el,v){if((el.type||'').toLowerCase()==='date'){var s=String(v).replace(/[年月\\/\\.]/g,'-').replace(/日/g,'');
+if(/^\\d{4}-\\d{1,2}$/.test(s)){var a=s.split('-');s=a[0]+'-'+('0'+a[1]).slice(-2)+'-01'}
+if(/^\\d{4}-\\d{1,2}-\\d{1,2}$/.test(s)){var b=s.split('-');s=b[0]+'-'+('0'+b[1]).slice(-2)+'-'+('0'+b[2]).slice(-2)}
+return s}return String(v)}
+function fs(el,v){var opts=el.options;var nv=n(v);var bi=-1;
+for(var i=0;i<opts.length;i++){if(n(opts[i].text)===nv){bi=i;break}}
+if(bi<0)for(var j=0;j<opts.length;j++){var t=n(opts[j].text);if(t&&nv&&(t.indexOf(nv)>=0||(nv.indexOf(t)>=0&&t.length>=2))){bi=j;break}}
+if(bi<0)return false;el.selectedIndex=bi;try{el.dispatchEvent(new Event('change',{bubbles:true}))}catch(e){}return true}
+var used={},filled=0,rm={};
+var els=document.querySelectorAll('input,textarea,select');
+for(var x=0;x<els.length;x++){var el=els[x];if(el.disabled)continue;var tp=(el.type||'').toLowerCase();
+if(tp==='password'||tp==='file'||tp==='hidden'||tp==='submit'||tp==='button'||tp==='image'||tp==='reset'||tp==='checkbox')continue;
+if(tp==='radio'){var g=el.name||('_r'+x);(rm[g]=rm[g]||[]).push(el);continue}
+var key=fk(lb(el));if(!key)continue;var v=D[key];if(!v)continue;used[key]=1;
+if(el.tagName==='SELECT'){if(fs(el,v))filled++}else{sv(el,dv(el,v));filled++}}
+for(var g2 in rm){var arr=rm[g2];if(!arr.length)continue;var lab='';
+try{var td=arr[0].closest('td');var pv=td&&td.previousElementSibling;if(pv)lab=(pv.innerText||pv.textContent||'')}catch(e){}
+if(!lab){try{var f=arr[0].closest('fieldset');var lg=f&&f.querySelector('legend');if(lg)lab=lg.innerText||lg.textContent||''}catch(e){}}
+var k2=fk(lab);if(!k2)continue;var v2=D[k2];if(!v2)continue;used[k2]=1;
+for(var j2=0;j2<arr.length;j2++){var ol='';
+try{if(arr[j2].labels&&arr[j2].labels[0])ol=arr[j2].labels[0].innerText||arr[j2].labels[0].textContent||''}catch(e){}
+if(n(arr[j2].value)===n(v2)||n(ol)===n(v2)){try{arr[j2].click();filled++}catch(e){}break}}}
+var miss=[];for(var k in D){if(!used[k]&&D[k])miss.push(k)}
+alert('官网一键填充完成\\n成功填入 '+filled+' 个字段'+(miss.length?'\\n未匹配: '+miss.join('、').slice(0,120):''));`;
+}
+function buildFillCode(dict){
+    return '(function(){var D=' + JSON.stringify(dict) + ';' + bookmarkletBody() + '})();';
+}
+function openFillModal(){
+    const dict=flattenInfoDict();
+    if(!Object.keys(dict).length){toast('当前版本还没有可填充的内容','error');return;}
+    window.__bmCode=buildFillCode(dict);
+    document.getElementById('bmLink').href='javascript:'+encodeURIComponent(window.__bmCode);
+    document.getElementById('bmOverlay').style.display='flex';
+}
+function closeFillModal(){
+    document.getElementById('bmOverlay').style.display='none';
+}
+function copyFillScript(){
+    copyText('javascript:'+window.__bmCode,'已复制脚本：新建书签，粘贴到网址栏即可');
 }
 function doImport(){
     const t=document.getElementById('importText').value;
